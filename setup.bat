@@ -68,7 +68,7 @@ python -c "from InferenceNode._version import __version__; print('InferNode vers
 if %errorlevel% neq 0 (
     echo Warning: InferNode package verification failed
 ) else (
-    echo ✓ InferNode package installed successfully
+    echo [OK] InferNode package installed successfully
 )
 
 echo.
