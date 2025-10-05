@@ -4,10 +4,7 @@
 ### It enables easy deployment and management of inference pipelines across distributed nodes with auto-discovery, telemetry, and flexible result publishing.
 
 ## 📺 Demo Video
-
-[![InferNode Demo](https://img.youtube.com/vi/_jGX6Y6FqGI/0.jpg)](https://www.youtube.com/watch?v=_jGX6Y6FqGI)
-
-Click the image above to watch the demo video on YouTube.
+https://github.com/user-attachments/assets/5ed323d7-e8cf-421a-be8f-781e3f51c9a0
 
 ## 🚀 Features - Scalable Inference Platform
 
