@@ -42,7 +42,7 @@ InferNode is a scalable inference platform that provides multi-node management a
 ### Quick Start
 ```bash
 # Clone the repository
-git clone https://github.com/olkham/InferNode.git
+git clone https://github.com/olkham/inference_node.git
 cd InferNode
 
 # Run the setup script (Windows)

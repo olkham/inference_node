@@ -38,10 +38,10 @@ readme = "readme.md"
 license = {text = "MIT"}
 
 [project.urls]
-Homepage = "https://github.com/olkham/InferNode"
-Repository = "https://github.com/olkham/InferNode"
-Documentation = "https://github.com/olkham/InferNode/docs"
-Issues = "https://github.com/olkham/InferNode/issues"
+Homepage = "https://github.com/olkham/inference_node"
+Repository = "https://github.com/olkham/inference_node"
+Documentation = "https://github.com/olkham/inference_node/docs"
+Issues = "https://github.com/olkham/inference_node/issues"
 
 [project.optional-dependencies]
 ai = [
