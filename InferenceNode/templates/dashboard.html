@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - InferNode{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- System Overview -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tachometer-alt me-2"></i>System Overview
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card bg-dark text-white system-overview-card border-secondary">
+                            <div class="card-body text-center">
+                                <i class="fas fa-microchip fa-2x mb-2 text-light"></i>
+                                <h6>CPU Cores</h6>
+                                <h4 id="cpu-cores">{{ node_info.cpu_count if node_info else 'N/A' }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card bg-dark text-white system-overview-card border-secondary">
+                            <div class="card-body text-center">
+                                <i class="fas fa-memory fa-2x mb-2 text-light"></i>
+                                <h6>Memory</h6>
+                                <h4 id="memory-total">
+                                    {% if node_info and node_info.memory_gb is not none %}
+                                        {{ '%.1f GB'|format(node_info.memory_gb|float) }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card bg-dark text-white system-overview-card border-secondary">
+                            <div class="card-body text-center">
+                                <i class="fas fa-server fa-2x mb-2 text-light"></i>
+                                <h6>Platform</h6>
+                                <small id="platform">{{ node_info.platform if node_info else 'N/A' }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card bg-dark text-white system-overview-card border-secondary">
+                            <div class="card-body text-center">
+                                <i class="fas fa-video fa-2x mb-2 text-light"></i>
+                                <h6>GPU Count</h6>
+                                <h4 id="gpu-status">
+                                    {% if node_info and node_info.hardware %}
+                                        {% set gpu_count = namespace(value=0) %}
+                                        {% if node_info.hardware.nvidia and node_info.hardware.nvidia.gpu_devices and node_info.hardware.nvidia.gpu_devices|length > 0 %}
+                                            {% set gpu_count.value = gpu_count.value + node_info.hardware.nvidia.gpu_devices|length %}
+                                        {% endif %}
+                                        {% if node_info.hardware.intel and node_info.hardware.intel.gpu_devices and node_info.hardware.intel.gpu_devices|length > 0 %}
+                                            {% set gpu_count.value = gpu_count.value + node_info.hardware.intel.gpu_devices|length %}
+                                        {% endif %}
+                                        {% if node_info.hardware.amd and node_info.hardware.amd.gpu_devices and node_info.hardware.amd.gpu_devices|length > 0 %}
+                                            {% set gpu_count.value = gpu_count.value + node_info.hardware.amd.gpu_devices|length %}
+                                        {% endif %}
+                                        {% if node_info.hardware.apple and node_info.hardware.apple.gpu %}
+                                            {% set gpu_count.value = gpu_count.value + 1 %}
+                                        {% endif %}
+                                        {{ gpu_count.value }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline Overview -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-project-diagram me-2"></i>Pipeline Overview
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card border-primary" style="background: linear-gradient(135deg, #0d6efd 0%, #084298 100%);">
+                            <div class="card-body text-center text-white">
+                                <h3 class="mb-1 fw-bold text-white" id="totalPipelines" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">0</h3>
+                                <small class="text-white" style="text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Total Pipelines</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card border-success" style="background: linear-gradient(135deg, #198754 0%, #146c43 100%);">
+                            <div class="card-body text-center text-white">
+                                <h3 class="mb-1 fw-bold text-white" id="activePipelines" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">0</h3>
+                                <small class="text-white" style="text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Active Pipelines</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card border-info" style="background: linear-gradient(135deg, #0dcaf0 0%, #087990 100%);">
+                            <div class="card-body text-center text-white">
+                                <h3 class="mb-1 fw-bold text-white" id="avgFPS" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">0.0</h3>
+                                <small class="text-white" style="text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Average FPS</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card border-warning" style="background: linear-gradient(135deg, #ffc107 0%, #ffca2c 100%);">
+                            <div class="card-body text-center text-dark">
+                                <h3 class="mb-1 fw-bold text-dark" id="avgLatency" style="text-shadow: 0 1px 3px rgba(255,255,255,0.5);">0ms</h3>
+                                <small class="text-dark" style="text-shadow: 0 1px 2px rgba(255,255,255,0.5);">Average Latency</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions & Status -->
+    <div class="col-lg-4">
+        <!-- Model Management -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-database me-2"></i>Model Management
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="model-status">
+                    <div class="text-muted">
+                        <i class="fas fa-spinner fa-spin me-2"></i>Loading model information...
+                    </div>
+                </div>
+                <a href="/models" class="btn btn-primary btn-sm">
+                    <i class="fas fa-database me-1"></i>Manage Models
+                </a>
+            </div>
+        </div>
+
+        <!-- Network Discovery -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-network-wired me-2"></i>Network Nodes
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="discovered-nodes">
+                    <div class="text-muted">
+                        <i class="fas fa-search me-2"></i>Discovering nodes...
+                    </div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm mt-2" onclick="window.location.href='/node-discovery'">
+                    <i class="fas fa-network-wired me-1"></i>Node Discovery
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<div class="modal fade" id="logsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">System Logs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="logs-content" class="bg-dark text-light p-3 log-display"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Update pipeline statistics
+function updatePipelineStatistics(stats) {
+    if (stats) {
+        document.getElementById('totalPipelines').textContent = stats.total || 0;
+        document.getElementById('activePipelines').textContent = stats.active || 0;
+        document.getElementById('avgFPS').textContent = (stats.avg_fps || 0).toFixed(1);
+        document.getElementById('avgLatency').textContent = Math.round(stats.avg_latency || 0) + 'ms';
+    } else {
+        document.getElementById('totalPipelines').textContent = '0';
+        document.getElementById('activePipelines').textContent = '0';
+        document.getElementById('avgFPS').textContent = '0.0';
+        document.getElementById('avgLatency').textContent = '0ms';
+    }
+}
+
+// Load pipeline statistics
+async function loadPipelineStatistics() {
+    try {
+        const response = await fetch('/api/pipelines');
+        const data = await response.json();
+        
+        if (response.ok && data.stats) {
+            updatePipelineStatistics(data.stats);
+        } else {
+            updatePipelineStatistics(null);
+        }
+    } catch (error) {
+        console.warn('Failed to load pipeline statistics:', error);
+        updatePipelineStatistics(null);
+    }
+}
+
+// Check model status
+async function checkModelStatus() {
+    try {
+        const response = await fetch('/api/models');
+        const data = await response.json();
+        
+        const statusDiv = document.getElementById('model-status');
+        
+        if (response.ok) {
+            const models = data.models;
+            const stats = data.stats;
+            const modelCount = Object.keys(models).length;
+            
+            statusDiv.innerHTML = `
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h4 class="text-primary mb-1">${modelCount}</h4>
+                        <small class="text-muted">Models</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-info mb-1">${stats.total_size_mb} MB</h4>
+                        <small class="text-muted">Storage</small>
+                    </div>
+                </div>
+            `;
+        } else {
+            statusDiv.innerHTML = `
+                <div class="text-muted">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Unable to load model information
+                </div>
+            `;
+        }
+    } catch (error) {
+        document.getElementById('model-status').innerHTML = `
+            <div class="text-muted">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Error loading model information
+            </div>
+        `;
+    }
+}
+
+// Network discovery
+async function discoverNodes() {
+    const nodesDiv = document.getElementById('discovered-nodes');
+    nodesDiv.innerHTML = `
+        <div class="text-muted">
+            <i class="fas fa-spinner fa-spin me-2"></i>Loading discovered nodes...
+        </div>
+    `;
+    
+    try {
+        // Get discovered nodes from our discovery manager
+        const response = await fetch('/api/discovery/nodes');
+        const data = await response.json();
+        
+        if (response.ok && data.nodes) {
+            const nodes = data.nodes;
+            const onlineNodes = nodes.filter(node => node.status === 'online');
+            
+            if (nodes.length === 0) {
+                nodesDiv.innerHTML = `
+                    <div class="text-muted">
+                        <i class="fas fa-info-circle me-2"></i>No nodes discovered yet
+                        <br><small>Visit <a href="/node-discovery">Node Discovery</a> to scan the network</small>
+                    </div>
+                `;
+            } else {
+                nodesDiv.innerHTML = `
+                    <div class="row text-center mb-2">
+                        <div class="col-6">
+                            <h5 class="text-primary mb-0">${nodes.length}</h5>
+                            <small class="text-muted">Total</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-success mb-0">${onlineNodes.length}</h5>
+                            <small class="text-muted">Online</small>
+                        </div>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        ${onlineNodes.slice(0, 3).map(node => `
+                            <div class="list-group-item list-group-item-action py-2 px-0 border-0">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="fw-bold">${node.node_name}</small>
+                                        <br><small class="text-muted">${node.ip_address}:${node.port}</small>
+                                    </div>
+                                    <span class="badge bg-success badge-sm">online</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                        ${nodes.length > 3 ? `
+                            <div class="text-center mt-2">
+                                <small class="text-muted">... and ${nodes.length - 3} more</small>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+        } else {
+            nodesDiv.innerHTML = `
+                <div class="text-muted">
+                    <i class="fas fa-info-circle me-2"></i>Discovery service not available
+                </div>
+            `;
+        }
+    } catch (error) {
+        nodesDiv.innerHTML = `
+            <div class="text-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Error loading discovered nodes
+            </div>
+        `;
+    }
+}
+
+// View logs
+function viewLogs() {
+    window.location.href = '/logs';
+}
+
+// Refresh node info
+function refreshNodeInfo() {
+    location.reload();
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadPipelineStatistics();
+    discoverNodes();
+    checkModelStatus();
+    
+    // Auto-refresh pipeline statistics every 30 seconds
+    setInterval(loadPipelineStatistics, 30000);
+});
+</script>
+{% endblock %}

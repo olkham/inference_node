@@ -1,0 +1,481 @@
+{% extends "base.html" %}
+
+{% block title %}Telemetry - InferNode{% endblock %}
+
+{% block head %}
+<!-- Chart.js for telemetry charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card border-primary" style="background: linear-gradient(135deg, #0d6efd 0%, #084298 100%);">
+            <div class="card-body text-center text-white py-2">
+                <h4 class="mb-1 fw-bold text-white" id="totalPipelines" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">0</h4>
+                <small class="text-white" style="text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Total Pipelines</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-success" style="background: linear-gradient(135deg, #198754 0%, #146c43 100%);">
+            <div class="card-body text-center text-white py-2">
+                <h4 class="mb-1 fw-bold text-white" id="activePipelines" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">0</h4>
+                <small class="text-white" style="text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Active Pipelines</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-info" style="background: linear-gradient(135deg, #0dcaf0 0%, #087990 100%);">
+            <div class="card-body text-center text-white py-2">
+                <h4 class="mb-1 fw-bold text-white" id="avgFPS" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">0.0</h4>
+                <small class="text-white" style="text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Average FPS</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-warning" style="background: linear-gradient(135deg, #ffc107 0%, #ffca2c 100%);">
+            <div class="card-body text-center text-dark py-2">
+                <h4 class="mb-1 fw-bold text-dark" id="avgLatency" style="text-shadow: 0 1px 3px rgba(255,255,255,0.5);">0ms</h4>
+                <small class="text-dark" style="text-shadow: 0 1px 2px rgba(255,255,255,0.5);">Average Latency</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- System Metrics -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line me-2"></i>System Metrics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <canvas id="cpuChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <canvas id="memoryChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <canvas id="diskChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <canvas id="tempChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Current Status -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Current Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="text-center">
+                            <div class="h4 text-primary mb-1" id="currentCPU">0%</div>
+                            <small class="text-muted">CPU Usage</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <div class="h4 text-success mb-1" id="currentMemory">0%</div>
+                            <small class="text-muted">Memory</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <div class="h4 text-warning mb-1" id="currentDisk">0%</div>
+                            <small class="text-muted">Disk Usage</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <div class="h4 text-danger mb-1" id="currentTemp">0°C</div>
+                            <small class="text-muted">CPU Temp</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <strong>Uptime:</strong><br>
+                        <span id="uptime" class="text-muted">0d 0h 0m</span>
+                    </div>
+                    <div class="text-end">
+                        <strong>Node ID:</strong><br>
+                        <span id="nodeId" class="text-muted">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Telemetry Configuration -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cog me-2"></i>Telemetry Config
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="telemetryConfigForm">
+                    <div class="mb-3">
+                        <label for="telemetryEnabled" class="form-label">
+                            <input type="checkbox" id="telemetryEnabled" checked> Enable Telemetry
+                        </label>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="publishInterval" class="form-label">Publish Interval (seconds)</label>
+                        <input type="number" class="form-control" id="publishInterval" value="30" min="5" max="300">
+                    </div>
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-8">
+                            <label for="mqttServer" class="form-label">MQTT Server</label>
+                            <input type="text" class="form-control" id="mqttServer" placeholder="192.168.1.241">
+                        </div>
+                        <div class="col-4">
+                            <label for="mqttPort" class="form-label">Port</label>
+                            <input type="number" class="form-control" id="mqttPort" value="1883" min="1" max="65535">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="telemetryTopic" class="form-label">MQTT Topic</label>
+                        <input type="text" class="form-control" id="telemetryTopic" value="infernode/telemetry">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-save me-2"></i>Save Configuration
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let charts = {};
+let telemetryData = {
+    cpu: [],
+    memory: [],
+    disk: [],
+    temperature: [],
+    network: { down: [], up: [] },
+    timestamps: []
+};
+let updateInterval;
+
+// Initialize charts
+function initializeCharts() {
+    const chartConfig = {
+        type: 'line',
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    display: false
+                },
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            elements: {
+                line: {
+                    tension: 0.4
+                },
+                point: {
+                    radius: 2
+                }
+            }
+        }
+    };
+
+    // CPU Chart
+    charts.cpu = new Chart(document.getElementById('cpuChart'), {
+        ...chartConfig,
+        data: {
+            labels: Array(60).fill(''),
+            datasets: [{
+                label: 'CPU %',
+                data: Array(60).fill(0),
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                fill: true
+            }]
+        }
+    });
+
+    // Memory Chart
+    charts.memory = new Chart(document.getElementById('memoryChart'), {
+        ...chartConfig,
+        data: {
+            labels: Array(60).fill(''),
+            datasets: [{
+                label: 'Memory %',
+                data: Array(60).fill(0),
+                borderColor: '#198754',
+                backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                fill: true
+            }]
+        }
+    });
+
+    // Disk Chart
+    charts.disk = new Chart(document.getElementById('diskChart'), {
+        ...chartConfig,
+        data: {
+            labels: Array(60).fill(''),
+            datasets: [{
+                label: 'Disk %',
+                data: Array(60).fill(0),
+                borderColor: '#ffc107',
+                backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                fill: true
+            }]
+        }
+    });
+
+    // Temperature Chart
+    charts.temperature = new Chart(document.getElementById('tempChart'), {
+        ...chartConfig,
+        options: {
+            ...chartConfig.options,
+            scales: {
+                ...chartConfig.options.scales,
+                y: {
+                    beginAtZero: false,
+                    min: 20,
+                    max: 100
+                }
+            }
+        },
+        data: {
+            labels: Array(60).fill(''),
+            datasets: [{
+                label: 'CPU Temp °C',
+                data: Array(60).fill(0),
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                fill: true
+            }]
+        }
+    });
+}
+
+// Update charts with new data
+function updateCharts(data) {
+    const { cpu, memory, disk, temperature } = data;
+    
+    // Update individual metric charts
+    updateChart(charts.cpu, cpu);
+    updateChart(charts.memory, memory);
+    updateChart(charts.disk, disk);
+    updateChart(charts.temperature, temperature);
+    
+    // Update current status displays
+    document.getElementById('currentCPU').textContent = `${cpu.toFixed(1)}%`;
+    document.getElementById('currentMemory').textContent = `${memory.toFixed(1)}%`;
+    document.getElementById('currentDisk').textContent = `${disk.toFixed(1)}%`;
+    document.getElementById('currentTemp').textContent = `${temperature.toFixed(1)}°C`;
+}
+
+// Update individual chart
+function updateChart(chart, value) {
+    // Skip update if value is null or undefined
+    if (value === null || value === undefined) {
+        value = 0;  // Use 0 as fallback for display
+    }
+    
+    chart.data.datasets[0].data.push(value);
+    
+    // Keep only last 60 points for real-time charts (1 minute at 1-second intervals)
+    if (chart.data.datasets[0].data.length > 60) {
+        chart.data.datasets[0].data.shift();
+    }
+    
+    chart.update('none');
+}
+
+// Fetch telemetry data
+async function fetchTelemetryData() {
+    try {
+        const response = await fetch('/api/telemetry');
+        const data = await response.json();
+        
+        if (response.ok) {
+            updateCharts(data.metrics);
+        }
+    } catch (error) {
+        console.error('Failed to fetch telemetry data:', error);
+    }
+}
+
+// Format bytes
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Format uptime
+function formatUptime(seconds) {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${days}d ${hours}h ${minutes}m`;
+}
+
+// Handle telemetry configuration form
+document.getElementById('telemetryConfigForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const config = {
+        enabled: document.getElementById('telemetryEnabled').checked,
+        publish_interval: parseInt(document.getElementById('publishInterval').value),
+        mqtt_server: document.getElementById('mqttServer').value,
+        mqtt_port: parseInt(document.getElementById('mqttPort').value),
+        mqtt_topic: document.getElementById('telemetryTopic').value
+    };
+    
+    try {
+        const response = await fetch('/api/telemetry/configure', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(config)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showAlert('success', 'Telemetry configuration updated successfully!');
+            
+            // Restart telemetry updates
+            if (config.enabled) {
+                startTelemetryUpdates(config.publish_interval);
+            } else {
+                stopTelemetryUpdates();
+            }
+        } else {
+            showAlert('error', `Failed to update configuration: ${result.error}`);
+        }
+    } catch (error) {
+        showAlert('error', `Failed to update configuration: ${error.message}`);
+    }
+});
+
+// Start telemetry updates
+function startTelemetryUpdates(interval = 1) {
+    stopTelemetryUpdates();
+    updateInterval = setInterval(fetchTelemetryData, interval * 1000);
+    fetchTelemetryData(); // Initial fetch
+}
+
+// Stop telemetry updates
+function stopTelemetryUpdates() {
+    if (updateInterval) {
+        clearInterval(updateInterval);
+        updateInterval = null;
+    }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    startTelemetryUpdates();
+    loadPipelineStatistics(); // Load pipeline stats for the statistics cards
+    
+    // Auto-refresh pipeline statistics every 30 seconds
+    setInterval(loadPipelineStatistics, 30000);
+    
+    // Load initial configuration
+    fetch('/api/telemetry/config')
+        .then(response => response.json())
+        .then(config => {
+            if (config.enabled !== undefined) {
+                document.getElementById('telemetryEnabled').checked = config.enabled;
+            }
+            if (config.publish_interval) {
+                document.getElementById('publishInterval').value = config.publish_interval;
+            }
+            if (config.mqtt_server) {
+                document.getElementById('mqttServer').value = config.mqtt_server;
+            }
+            if (config.mqtt_port) {
+                document.getElementById('mqttPort').value = config.mqtt_port;
+            }
+            if (config.mqtt_topic) {
+                document.getElementById('telemetryTopic').value = config.mqtt_topic;
+            }
+        })
+        .catch(error => console.log('No telemetry config found'));
+});
+
+// Pipeline Statistics Functions
+async function loadPipelineStatistics() {
+    try {
+        const response = await fetch('/api/pipelines');
+        const data = await response.json();
+        
+        if (response.ok && data.stats) {
+            updatePipelineStatistics(data.stats);
+        } else {
+            updatePipelineStatistics(null);
+        }
+    } catch (error) {
+        console.warn('Failed to load pipeline statistics:', error);
+        updatePipelineStatistics(null);
+    }
+}
+
+// Update pipeline statistics display
+function updatePipelineStatistics(stats) {
+    if (stats) {
+        document.getElementById('totalPipelines').textContent = stats.total || 0;
+        document.getElementById('activePipelines').textContent = stats.active || 0;
+        document.getElementById('avgFPS').textContent = (stats.avg_fps || 0).toFixed(1);
+        document.getElementById('avgLatency').textContent = Math.round(stats.avg_latency || 0) + 'ms';
+    } else {
+        document.getElementById('totalPipelines').textContent = '0';
+        document.getElementById('activePipelines').textContent = '0';
+        document.getElementById('avgFPS').textContent = '0.0';
+        document.getElementById('avgLatency').textContent = '0ms';
+    }
+}
+
+// Cleanup when page unloads
+window.addEventListener('beforeunload', function() {
+    stopTelemetryUpdates();
+});
+</script>
+{% endblock %}

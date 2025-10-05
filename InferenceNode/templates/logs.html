@@ -1,0 +1,511 @@
+{% extends "base.html" %}
+
+{% block title %}System Logs - InferNode{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-9">
+        <!-- Log Viewer -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-alt me-2"></i>System Logs
+                </h5>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary" onclick="refreshLogs()">
+                        <i class="fas fa-sync me-1"></i>Refresh
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="downloadLogs()">
+                        <i class="fas fa-download me-1"></i>Download
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="clearLogs()">
+                        <i class="fas fa-trash me-1"></i>Clear
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <!-- Log Controls -->
+                <div class="border-bottom p-3">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="logLevel" class="form-label">Log Level</label>
+                            <select class="form-select form-select-sm" id="logLevel" onchange="filterLogs()">
+                                <option value="">All Levels</option>
+                                <option value="DEBUG">DEBUG</option>
+                                <option value="INFO">INFO</option>
+                                <option value="WARNING">WARNING</option>
+                                <option value="ERROR">ERROR</option>
+                                <option value="CRITICAL">CRITICAL</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="logComponent" class="form-label">Component</label>
+                            <select class="form-select form-select-sm" id="logComponent" onchange="filterLogs()">
+                                <option value="">All Components</option>
+                                <option value="inference">Inference Engine</option>
+                                <option value="publisher">Result Publisher</option>
+                                <option value="telemetry">Telemetry</option>
+                                <option value="discovery">Discovery</option>
+                                <option value="web">Web Interface</option>
+                                <option value="system">System</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="logSearch" class="form-label">Search</label>
+                            <input type="text" class="form-control form-control-sm" id="logSearch" 
+                                   placeholder="Search logs..." onkeyup="filterLogs()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Log Content -->
+                <div id="logContainer" class="log-container log-display">
+                    <div class="p-3 text-light">Loading logs...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <!-- Log Statistics -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Log Statistics
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-2 text-center">
+                    <div class="col-6">
+                        <div class="border rounded p-2">
+                            <div class="h6 text-secondary mb-1" id="debugCount">0</div>
+                            <small class="text-muted">DEBUG</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-2">
+                            <div class="h6 text-info mb-1" id="infoCount">0</div>
+                            <small class="text-muted">INFO</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-2">
+                            <div class="h6 text-warning mb-1" id="warningCount">0</div>
+                            <small class="text-muted">WARNING</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-2">
+                            <div class="h6 text-danger mb-1" id="errorCount">0</div>
+                            <small class="text-muted">ERROR</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <div class="h6 mb-1" id="totalLogs">0</div>
+                    <small class="text-muted">Total Log Entries</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Sources -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>Log Sources
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-2">
+                        <div>
+                            <i class="fas fa-microchip me-2"></i>
+                            <small>Inference Engine</small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill" id="inferenceLogCount">0</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-2">
+                        <div>
+                            <i class="fas fa-paper-plane me-2"></i>
+                            <small>Result Publisher</small>
+                        </div>
+                        <span class="badge bg-success rounded-pill" id="publisherLogCount">0</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-2">
+                        <div>
+                            <i class="fas fa-chart-line me-2"></i>
+                            <small>Telemetry</small>
+                        </div>
+                        <span class="badge bg-info rounded-pill" id="telemetryLogCount">0</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-2">
+                        <div>
+                            <i class="fas fa-tasks me-2"></i>
+                            <small>Discovery</small>
+                        </div>
+                        <span class="badge bg-warning rounded-pill" id="discoveryLogCount">0</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-2">
+                        <div>
+                            <i class="fas fa-home me-2"></i>
+                            <small>Web Interface</small>
+                        </div>
+                        <span class="badge bg-secondary rounded-pill" id="webLogCount">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Settings -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-cog me-2"></i>Log Settings
+                </h6>
+            </div>
+            <div class="card-body">
+                <form id="logSettingsForm">
+                    <div class="mb-3">
+                        <label for="globalLogLevel" class="form-label">Global Log Level</label>
+                        <select class="form-select form-select-sm" id="globalLogLevel">
+                            <option value="DEBUG">DEBUG</option>
+                            <option value="INFO" selected>INFO</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="ERROR">ERROR</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="maxLogSize" class="form-label">Max Log Size (MB)</label>
+                        <input type="number" class="form-control form-control-sm" id="maxLogSize" value="10" min="1" max="100">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="logRetention" class="form-label">Retention (days)</label>
+                        <input type="number" class="form-control form-control-sm" id="logRetention" value="7" min="1" max="30">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="enableFileLogging" checked>
+                            <label class="form-check-label" for="enableFileLogging">
+                                <small>Enable File Logging</small>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="fas fa-save me-1"></i>Save Settings
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allLogs = [];
+let filteredLogs = [];
+let logUpdateInterval;
+
+// Log entry class for styling
+const logLevelClasses = {
+    'DEBUG': 'text-muted',
+    'INFO': 'text-info',
+    'WARNING': 'text-warning',
+    'ERROR': 'text-danger',
+    'CRITICAL': 'text-danger fw-bold'
+};
+
+// Load logs from API
+async function loadLogs() {
+    try {
+        const response = await fetch('/api/logs');
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            allLogs = data.data.logs || [];
+            updateLogStatistics();
+            filterLogs();
+        } else {
+            console.error('Failed to load logs:', data.error);
+        }
+    } catch (error) {
+        console.error('Error loading logs:', error);
+        displayMockLogs(); // Fallback to mock data
+    }
+}
+
+// Display mock logs for demonstration
+function displayMockLogs() {
+    const mockLogs = [
+        {
+            timestamp: new Date(Date.now() - 5000).toISOString(),
+            level: 'INFO',
+            component: 'inference',
+            message: 'Ultralytics YOLO model loaded successfully',
+            details: { model_name: 'yolov8n.pt', load_time: '2.3s' }
+        },
+        {
+            timestamp: new Date(Date.now() - 10000).toISOString(),
+            level: 'INFO',
+            component: 'web',
+            message: 'Web interface started on port 5000',
+            details: { port: 5000, address: '0.0.0.0' }
+        },
+        {
+            timestamp: new Date(Date.now() - 15000).toISOString(),
+            level: 'DEBUG',
+            component: 'publisher',
+            message: 'MQTT publisher configured',
+            details: { broker: 'localhost:1883', topic: 'infernode/results' }
+        },
+        {
+            timestamp: new Date(Date.now() - 20000).toISOString(),
+            level: 'WARNING',
+            component: 'telemetry',
+            message: 'High CPU usage detected',
+            details: { cpu_percent: 85.2, threshold: 80 }
+        },
+        {
+            timestamp: new Date(Date.now() - 25000).toISOString(),
+            level: 'ERROR',
+            component: 'inference',
+            message: 'Failed to load custom model',
+            details: { model_path: '/models/custom.onnx', error: 'File not found' }
+        },
+        {
+            timestamp: new Date(Date.now() - 30000).toISOString(),
+            level: 'INFO',
+            component: 'discovery',
+            message: 'Network discovery service started',
+            details: { port: 8888, broadcast_interval: 30 }
+        },
+        {
+            timestamp: new Date(Date.now() - 35000).toISOString(),
+            level: 'INFO',
+            component: 'system',
+            message: 'InferNode started successfully',
+            details: { version: '1.0.0', node_id: 'infernode-001' }
+        }
+    ];
+    
+    allLogs = mockLogs;
+    updateLogStatistics();
+    filterLogs();
+}
+
+// Update log statistics
+function updateLogStatistics() {
+    const stats = {
+        debug: 0,
+        info: 0,
+        warning: 0,
+        error: 0,
+        total: allLogs.length
+    };
+    
+    const componentStats = {
+        inference: 0,
+        publisher: 0,
+        telemetry: 0,
+        discovery: 0,
+        web: 0,
+        system: 0
+    };
+    
+    allLogs.forEach(log => {
+        const level = log.level.toLowerCase();
+        if (stats[level] !== undefined) {
+            stats[level]++;
+        }
+        
+        if (componentStats[log.component] !== undefined) {
+            componentStats[log.component]++;
+        }
+    });
+    
+    // Update statistics display
+    document.getElementById('debugCount').textContent = stats.debug;
+    document.getElementById('infoCount').textContent = stats.info;
+    document.getElementById('warningCount').textContent = stats.warning;
+    document.getElementById('errorCount').textContent = stats.error;
+    document.getElementById('totalLogs').textContent = stats.total;
+    
+    // Update component statistics
+    document.getElementById('inferenceLogCount').textContent = componentStats.inference;
+    document.getElementById('publisherLogCount').textContent = componentStats.publisher;
+    document.getElementById('telemetryLogCount').textContent = componentStats.telemetry;
+    document.getElementById('discoveryLogCount').textContent = componentStats.discovery;
+    document.getElementById('webLogCount').textContent = componentStats.web;
+}
+
+// Filter logs based on current filters
+function filterLogs() {
+    const levelFilter = document.getElementById('logLevel').value;
+    const componentFilter = document.getElementById('logComponent').value;
+    const searchFilter = document.getElementById('logSearch').value.toLowerCase();
+    
+    filteredLogs = allLogs.filter(log => {
+        if (levelFilter && log.level !== levelFilter) return false;
+        if (componentFilter && log.component !== componentFilter) return false;
+        if (searchFilter && !log.message.toLowerCase().includes(searchFilter)) return false;
+        return true;
+    });
+    
+    displayLogs();
+}
+
+// Display logs in the container
+function displayLogs() {
+    const container = document.getElementById('logContainer');
+    
+    if (filteredLogs.length === 0) {
+        container.innerHTML = '<div class="p-3 text-light">No logs match the current filters</div>';
+        return;
+    }
+    
+    const html = filteredLogs.map(log => {
+        const timestamp = new Date(log.timestamp).toLocaleString();
+        const levelClass = logLevelClasses[log.level] || 'text-muted';
+        const detailsHtml = log.details ? 
+            `<div class="ms-4 mt-1"><small class="text-muted">${JSON.stringify(log.details)}</small></div>` : '';
+        
+        return `
+            <div class="log-entry p-2 border-bottom" data-level="${log.level}" data-component="${log.component}">
+                <div class="d-flex">
+                    <span class="text-muted me-2 log-timestamp">${timestamp}</span>
+                    <span class="badge badge-sm me-2 log-level-badge ${levelClass}">${log.level}</span>
+                    <span class="badge bg-secondary me-2 log-component-badge">${log.component}</span>
+                    <span class="flex-grow-1">${log.message}</span>
+                </div>
+                ${detailsHtml}
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = html;
+}
+
+// Action functions
+function refreshLogs() {
+    showAlert('info', 'Refreshing logs...');
+    loadLogs();
+}
+
+function downloadLogs() {
+    const logData = filteredLogs.map(log => 
+        `${log.timestamp} [${log.level}] ${log.component}: ${log.message}`
+    ).join('\n');
+    
+    const blob = new Blob([logData], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `infernode-logs-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    showAlert('success', 'Logs downloaded successfully');
+}
+
+function clearLogs() {
+    if (confirm('Are you sure you want to clear all logs? This action cannot be undone.')) {
+        fetch('/api/logs/clear', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                allLogs = [];
+                filteredLogs = [];
+                updateLogStatistics();
+                displayLogs();
+                showAlert('success', 'All logs have been cleared');
+            } else {
+                showAlert('error', `Failed to clear logs: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            showAlert('error', `Failed to clear logs: ${error.message}`);
+        });
+    }
+}
+
+// Log settings form handler
+document.getElementById('logSettingsForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const settings = {
+        log_level: document.getElementById('globalLogLevel').value,
+        max_log_size_mb: parseInt(document.getElementById('maxLogSize').value),
+        retention_days: parseInt(document.getElementById('logRetention').value),
+        enable_file_logging: document.getElementById('enableFileLogging').checked
+    };
+    
+    try {
+        const response = await fetch('/api/logs/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showAlert('success', 'Log settings updated successfully!');
+        } else {
+            showAlert('error', `Failed to update settings: ${result.error}`);
+        }
+    } catch (error) {
+        showAlert('error', `Failed to update settings: ${error.message}`);
+    }
+});
+
+// Auto-update logs
+function startLogUpdates() {
+    logUpdateInterval = setInterval(() => {
+        if (!document.hidden) { // Only update when page is visible
+            loadLogs();
+        }
+    }, 5000); // Update every 5 seconds
+}
+
+function stopLogUpdates() {
+    if (logUpdateInterval) {
+        clearInterval(logUpdateInterval);
+        logUpdateInterval = null;
+    }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    loadLogs();
+    startLogUpdates();
+});
+
+// Cleanup when page is hidden/unloaded
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        stopLogUpdates();
+    } else {
+        startLogUpdates();
+    }
+});
+
+window.addEventListener('beforeunload', function() {
+    stopLogUpdates();
+});
+</script>
+
+{% endblock %}

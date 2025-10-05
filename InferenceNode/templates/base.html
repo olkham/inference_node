@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}InferNode Management Console{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous">
+    <!-- Fallback for Font Awesome -->
+    <script>
+        // Check if Font Awesome loaded, if not load a backup
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const testIcon = document.createElement('i');
+                testIcon.className = 'fas fa-heart';
+                testIcon.style.position = 'absolute';
+                testIcon.style.left = '-9999px';
+                document.body.appendChild(testIcon);
+                
+                const fontFamily = window.getComputedStyle(testIcon).fontFamily;
+                const fontAwesomeLoaded = fontFamily.includes('Font Awesome') || fontFamily.includes('FontAwesome');
+                
+                document.body.removeChild(testIcon);
+                
+                if (!fontAwesomeLoaded) {
+                    console.warn('Font Awesome failed to load, notifications will use fallback icons');
+                    // You could load an alternative icon library here if needed
+                }
+            }, 100);
+        });
+    </script>
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    
+    <!-- Notification System Styles -->
+    <style>
+        /* Enhanced notification system styles */
+        .notification-container {
+            max-height: 50vh;
+            overflow: hidden;
+        }
+        
+        .notification-item {
+            animation: slideInRight 0.3s ease-out;
+            transform-origin: right center;
+            background-color: rgba(33, 37, 41, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .notification-item.removing {
+            animation: slideOutRight 0.15s ease-in;
+        }
+        
+        /* Ensure notification text is highly readable with dark theme */
+        .notification-item .alert {
+            background-color: inherit !important;
+            color: #fff !important;
+            margin-bottom: 0;
+        }
+        
+        .notification-item .alert-success {
+            background-color: rgba(25, 135, 84, 0.9) !important;
+            color: #fff !important;
+            border-color: rgba(25, 135, 84, 1);
+        }
+        
+        .notification-item .alert-danger {
+            background-color: rgba(220, 53, 69, 0.9) !important;
+            color: #fff !important;
+            border-color: rgba(220, 53, 69, 1);
+        }
+        
+        .notification-item .alert-warning {
+            background-color: rgba(255, 193, 7, 0.9) !important;
+            color: #000 !important;
+            border-color: rgba(255, 193, 7, 1);
+        }
+        
+        .notification-item .alert-info {
+            background-color: rgba(13, 110, 253, 0.9) !important;
+            color: #fff !important;
+            border-color: rgba(13, 110, 253, 1);
+        }
+        
+        /* Notification progress bar */
+        .notification-progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 0 0 0.375rem 0.375rem;
+            transition: width linear;
+            z-index: 1;
+        }
+        
+        .notification-item .alert-success .notification-progress-bar {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .notification-item .alert-danger .notification-progress-bar {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .notification-item .alert-warning .notification-progress-bar {
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+        
+        .notification-item .alert-info .notification-progress-bar {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        /* Ensure notification items have relative positioning for progress bar */
+        .notification-item .alert {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes slideOutRight {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+                max-height: 100px;
+                margin-bottom: 10px;
+                padding-top: 0.75rem;
+                padding-bottom: 0.75rem;
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+                max-height: 0;
+                margin-bottom: 0;
+                padding-top: 0;
+                padding-bottom: 0;
+            }
+        }
+        
+        /* Responsive notification width */
+        @media (max-width: 768px) {
+            .notification-container {
+                left: 10px;
+                right: 10px;
+                top: 10px;
+                max-width: none;
+            }
+        }
+        
+        /* Enhanced navigation styling */
+        .navbar-nav .nav-item {
+            white-space: nowrap;
+        }
+        
+        .navbar-nav .nav-link {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+        }
+        
+        .navbar-brand {
+            white-space: nowrap;
+            font-weight: 600;
+        }
+        
+        /* Ensure dropdown items stay readable */
+        @media (max-width: 1200px) {
+            .navbar-nav .nav-link {
+                font-size: 0.9rem;
+            }
+        }
+        
+        /* Align status badge with navbar elements */
+        .navbar-text {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0;
+        }
+    </style>
+    
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-microchip me-2"></i>
+                InferNode Console
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pipeline-builder">
+                            <i class="fas fa-project-diagram me-1"></i>Pipeline Builder
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pipeline-management">
+                            <i class="fas fa-tasks me-1"></i>Pipeline Management
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/models">
+                            <i class="fas fa-database me-1"></i>Model Management
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/publisher">
+                            <i class="fas fa-share-alt me-1"></i>Publishers
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/telemetry">
+                            <i class="fas fa-chart-line me-1"></i>Telemetry
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/node-discovery">
+                            <i class="fas fa-network-wired me-1"></i>Node Discovery
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/api-docs">
+                            <i class="fas fa-code me-1"></i>API
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="navbar-text me-3">
+                            <span id="node-status" class="badge bg-success">Online</span>
+                        </span>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>Node: {{ node_info.node_name if node_info else 'Unknown' }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/node-info">Node Information</a></li>
+                            <li><a class="dropdown-item" href="/logs">View Logs</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="shutdownNode()">Shutdown Node</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid py-4">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Content -->
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark mt-5 py-3">
+        <div class="container text-center">
+            <small class="text-light">
+                InferNode Platform v{{ node_info.version if node_info and node_info.version else '0.1.0' }} &copy; 2025 | 
+                <a href="https://github.com/olkham/InferNode" target="_blank" class="text-light">GitHub</a> |
+                <a href="/api-docs" class="text-light">API Documentation</a>
+            </small>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

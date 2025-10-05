@@ -1,0 +1,1461 @@
+{% extends "base.html" %}
+
+{% block title %}Result Publisher - InferNode{% endblock %}
+
+{% block head %}
+<style>
+.button-selector-item {
+    max-width: 225px;
+}
+
+/* Subtle styling for filter inputs */
+.filter-input-container {
+    position: relative;
+    display: inline-block;
+    max-width: 200px;
+}
+
+.filter-input {
+    border: 1px solid #495057;
+    background-color: #343a40;
+    color: #ffffff;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+    padding-right: 30px; /* Make room for the clear button */
+}
+
+.filter-input::placeholder {
+    color: #adb5bd;
+}
+
+.filter-input:focus {
+    border-color: #6c757d;
+    background-color: #495057;
+    color: #ffffff;
+    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.1);
+}
+
+.filter-clear-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #adb5bd;
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 0;
+    width: 16px;
+    height: 16px;
+    display: none; /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.filter-clear-btn:hover {
+    background-color: #495057;
+    color: #ffffff;
+}
+
+.filter-clear-btn.show {
+    display: flex;
+}
+
+/* Quick search badges */
+.quick-search-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-left: 8px;
+}
+
+.quick-search-badge {
+    background-color: #495057;
+    color: #adb5bd;
+    border: 1px solid #6c757d;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.quick-search-badge:hover {
+    background-color: #6c757d;
+    color: #ffffff;
+    border-color: #adb5bd;
+}
+
+.quick-search-badge.active {
+    background-color: #0d6efd;
+    color: #ffffff;
+    border-color: #0d6efd;
+}
+
+.filter-container {
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.filter-container:hover {
+    opacity: 1;
+}
+
+/* Hide filter inputs when not needed */
+.button-selector:has(.button-selector-item:only-child) + .filter-container {
+    display: none;
+}
+
+/* Disabled destination type styling */
+.button-selector-item.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.button-selector-item.disabled:hover {
+    background-color: transparent;
+    transform: none;
+}
+
+.button-selector-item.disabled .icon,
+.button-selector-item.disabled .label,
+.button-selector-item.disabled .description {
+    color: #6c757d;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Add Result Destination -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-plus-circle me-2"></i>Add Result Destination
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="destinationForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" id="favoriteName" placeholder="e.g., Production MQTT" required>
+                            <div class="form-text">Give this configuration a memorable name</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Description (optional)</label>
+                            <input type="text" class="form-control" id="favoriteDescription" placeholder="Brief description">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Destination Type</label>
+                            <div class="d-flex align-items-center mb-2 filter-container">
+                                <div class="filter-input-container me-2">
+                                    <input type="text" class="form-control form-control-sm filter-input" 
+                                           placeholder="Filter destinations..." 
+                                           id="destinationFilter"
+                                           onkeyup="handleFilterInput('destinationTypeSelector', this)"
+                                           oninput="toggleClearButton(this)">
+                                    <button type="button" class="filter-clear-btn" 
+                                            onclick="clearFilter('destinationTypeSelector', 'destinationFilter')"
+                                            title="Clear search">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="quick-search-badges">
+                                    <span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', 'mqtt')">mqtt</span>
+                                    <span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', 'http')">http</span>
+                                    <span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', 'file')">file</span>
+                                    <span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', 'geti')">geti</span>
+                                    <span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', 'roboflow')">roboflow</span>
+                                    <span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', 'serial')">serial</span>
+                                    <span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', 'null')">null</span>
+                                </div>
+                            </div>
+                            <div class="button-selector large-group" id="destinationTypeSelector">
+                                <!-- Destination types will be loaded dynamically -->
+                            </div>
+                            <input type="hidden" id="destinationType" required>
+                        </div>
+                        <div class="col-12">
+                            <div id="configForm">
+                                <div class="text-muted">Select a destination type to configure</div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary" disabled>
+                                    <i class="fas fa-star me-2"></i>Save as Favorite
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="cancelEditBtn" onclick="cancelEdit()" style="display: none;">
+                                    <i class="fas fa-times me-2"></i>Cancel Edit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Favorite Configurations -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-star me-2"></i>Favorite Configurations
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="favoritesList">
+                    <div class="text-muted">
+                        <i class="fas fa-info-circle me-2"></i>No favorite configurations saved
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Test Publishing -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-paper-plane me-2"></i>Test Publishing
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="testPublishForm">
+                    <div class="mb-3">
+                        <label for="testMessage" class="form-label">Test Message</label>
+                        <textarea class="form-control" id="testMessage" rows="4" placeholder="Enter test data...">
+{
+  "test": true,
+  "message": "Test message from InferNode",
+  "timestamp": "2025-07-28T10:30:00Z",
+  "data": {
+    "value": 42
+  }
+}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-paper-plane me-2"></i>Send Test Message to Selected
+                    </button>
+                    <div class="form-text mt-2">
+                        <small class="text-muted">Messages will be sent to all checked favorite destinations</small>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Publishing Statistics -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Publishing Stats
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border rounded p-2 mb-2">
+                            <h4 id="totalPublished" class="text-success mb-1">0</h4>
+                            <small class="text-muted">Total Published</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-2 mb-2">
+                            <h4 id="publishErrors" class="text-danger mb-1">0</h4>
+                            <small class="text-muted">Errors</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Destination Info -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Destination Types
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="destinationInfo">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#mqtt-info">
+                                MQTT
+                            </button>
+                        </h2>
+                        <div id="mqtt-info" class="accordion-collapse collapse" data-bs-parent="#destinationInfo">
+                            <div class="accordion-body">
+                                <small>
+                                    Publish results to MQTT brokers. Supports authentication and rate limiting.
+                                    <br><strong>Use case:</strong> IoT systems, real-time monitoring
+                                    <br><strong>Variable substitution:</strong> Topics support variables like <code>{node_id}</code>, <code>{timestamp}</code>, <code>{pipeline_id}</code>, etc.
+                                    <br><strong>Example:</strong> <code>inference/{node_id}/results</code> → <code>inference/node-abc123/results</code>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#webhook-info">
+                                Webhook
+                            </button>
+                        </h2>
+                        <div id="webhook-info" class="accordion-collapse collapse" data-bs-parent="#destinationInfo">
+                            <div class="accordion-body">
+                                <small>
+                                    Send HTTP POST requests to custom endpoints with JSON payloads.
+                                    <br><strong>Use case:</strong> Web services, notifications, integrations
+                                    <br><strong>Variable substitution:</strong> URLs support variables like <code>{node_id}</code>, <code>{timestamp}</code>, <code>{pipeline_id}</code>, etc.
+                                    <br><strong>Example:</strong> <code>https://api.example.com/{node_id}/webhook</code> → <code>https://api.example.com/node-abc123/webhook</code>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#serial-info">
+                                Serial Port
+                            </button>
+                        </h2>
+                        <div id="serial-info" class="accordion-collapse collapse" data-bs-parent="#destinationInfo">
+                            <div class="accordion-body">
+                                <small>
+                                    Send data to serial ports for hardware integration.
+                                    <br><strong>Use case:</strong> Embedded systems, hardware control
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Destination Modal -->
+<div class="modal fade" id="editDestinationModal" tabindex="-1" aria-labelledby="editDestinationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editDestinationModalLabel">Edit Destination</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editDestinationForm">
+                    <div class="mb-3">
+                        <label class="form-label">Destination Type</label>
+                        <input type="text" class="form-control" id="editDestinationType" readonly>
+                    </div>
+                    <div id="editConfigForm">
+                        <!-- Configuration fields will be dynamically populated -->
+                    </div>
+                    <input type="hidden" id="editDestinationId">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveDestinationEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Global variables
+let publishStats = { total: 0, errors: 0 };
+let availableDestinationTypes = [];
+let favoriteConfigs = [];
+
+// Filter function for button selectors
+function filterButtonSelector(selectorId, searchTerm) {
+    const selector = document.getElementById(selectorId);
+    const items = selector.querySelectorAll('.button-selector-item');
+    const term = searchTerm.toLowerCase().trim();
+    
+    items.forEach(item => {
+        const label = item.querySelector('.label')?.textContent?.toLowerCase() || '';
+        const description = item.querySelector('.description')?.textContent?.toLowerCase() || '';
+        const dataValue = item.getAttribute('data-value')?.toLowerCase() || '';
+        
+        const matches = !term || label.includes(term) || description.includes(term) || dataValue.includes(term);
+        item.style.display = matches ? '' : 'none';
+    });
+}
+
+// Handle filter input with clear button functionality
+function handleFilterInput(selectorId, inputElement) {
+    filterButtonSelector(selectorId, inputElement.value);
+    toggleClearButton(inputElement);
+}
+
+// Toggle visibility of clear button based on input content
+function toggleClearButton(inputElement) {
+    const clearBtn = inputElement.parentElement.querySelector('.filter-clear-btn');
+    if (inputElement.value.trim() !== '') {
+        clearBtn.classList.add('show');
+    } else {
+        clearBtn.classList.remove('show');
+    }
+}
+
+// Clear filter and hide clear button
+function clearFilter(selectorId, inputId) {
+    const inputElement = document.getElementById(inputId);
+    inputElement.value = '';
+    filterButtonSelector(selectorId, '');
+    toggleClearButton(inputElement);
+    clearQuickSearchBadges(inputId);
+    inputElement.focus(); // Return focus to input
+}
+
+// Quick search function for badges
+function quickSearch(inputId, selectorId, searchTerm) {
+    const inputElement = document.getElementById(inputId);
+    
+    // If the badge is already active (current search term), clear the search
+    if (inputElement.value.toLowerCase() === searchTerm.toLowerCase()) {
+        inputElement.value = '';
+        filterButtonSelector(selectorId, '');
+        toggleClearButton(inputElement);
+        clearQuickSearchBadges(inputId);
+    } else {
+        inputElement.value = searchTerm;
+        filterButtonSelector(selectorId, searchTerm);
+        toggleClearButton(inputElement);
+        updateQuickSearchBadges(inputId, searchTerm);
+    }
+    
+    inputElement.focus();
+}
+
+// Update quick search badge active states
+function updateQuickSearchBadges(inputId, activeTerm) {
+    const container = document.getElementById(inputId).closest('.filter-container');
+    const badges = container.querySelectorAll('.quick-search-badge');
+    
+    badges.forEach(badge => {
+        const badgeText = badge.textContent.toLowerCase();
+        if (badgeText === activeTerm.toLowerCase()) {
+            badge.classList.add('active');
+        } else {
+            badge.classList.remove('active');
+        }
+    });
+}
+
+// Clear all quick search badge active states
+function clearQuickSearchBadges(inputId) {
+    const container = document.getElementById(inputId).closest('.filter-container');
+    const badges = container.querySelectorAll('.quick-search-badge');
+    
+    badges.forEach(badge => {
+        badge.classList.remove('active');
+    });
+}
+
+// Button selector function
+function selectDestinationType(value) {
+    // Update hidden input
+    document.getElementById('destinationType').value = value;
+    
+    // Update visual selection
+    const selector = document.getElementById('destinationTypeSelector');
+    selector.querySelectorAll('.button-selector-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    selector.querySelector(`[data-value="${value}"]`).classList.add('active');
+    
+    // Update configuration
+    updateConfigForm();
+}
+
+// Generate form fields from schema configuration
+function generateFormFieldsFromSchema(schema, prefix = '') {
+    if (!schema || !schema.fields || schema.fields.length === 0) {
+        return '<div class="text-muted">No configuration fields available</div>';
+    }
+    
+    return schema.fields.map(field => {
+        const fieldId = prefix + field.name;
+        const required = field.required ? ' required' : '';
+        const requiredStar = field.required ? ' *' : '';
+        
+        let fieldHtml = '';
+        
+        switch (field.type) {
+            case 'text':
+            case 'url':
+                fieldHtml = `
+                    <div class="col-${field.name === 'topic' || field.name === 'url' || field.name === 'folder_path' ? '12' : '6'}">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}</label>
+                        <input type="text" class="form-control" id="${fieldId}" 
+                               placeholder="${field.placeholder || ''}" ${required}
+                               title="${field.description || ''}">
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'password':
+                fieldHtml = `
+                    <div class="col-6">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}</label>
+                        <input type="password" class="form-control" id="${fieldId}" 
+                               placeholder="${field.placeholder || ''}" ${required}
+                               title="${field.description || ''}">
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'number':
+                const min = field.min !== undefined ? ` min="${field.min}"` : '';
+                const max = field.max !== undefined ? ` max="${field.max}"` : '';
+                const step = field.step !== undefined ? ` step="${field.step}"` : '';
+                const defaultValue = field.default !== undefined ? ` value="${field.default}"` : '';
+                
+                fieldHtml = `
+                    <div class="col-6">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}${field.unit ? ` (${field.unit})` : ''}</label>
+                        <input type="number" class="form-control" id="${fieldId}" 
+                               placeholder="${field.placeholder || ''}" ${required}${min}${max}${step}${defaultValue}
+                               title="${field.description || ''}">
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'select':
+                const options = field.options ? field.options.map(opt => 
+                    `<option value="${opt.value}"${field.default === opt.value ? ' selected' : ''}>${opt.label}</option>`
+                ).join('') : '';
+                
+                fieldHtml = `
+                    <div class="col-6">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}</label>
+                        <select class="form-select" id="${fieldId}" ${required}
+                                title="${field.description || ''}">
+                            ${!field.required ? '<option value="">Select...</option>' : ''}
+                            ${options}
+                        </select>
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'checkbox':
+                const checked = field.default ? ' checked' : '';
+                
+                fieldHtml = `
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="${fieldId}" value="true"${checked}>
+                            <label class="form-check-label" for="${fieldId}">
+                                ${field.label}
+                            </label>
+                        </div>
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'textarea':
+                const rows = field.rows || 3;
+                
+                fieldHtml = `
+                    <div class="col-12">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}</label>
+                        <textarea class="form-control" id="${fieldId}" rows="${rows}"
+                                  placeholder="${field.placeholder || ''}" ${required}
+                                  title="${field.description || ''}"></textarea>
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'info':
+                fieldHtml = `
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>${field.label}:</strong> ${field.description || ''}
+                        </div>
+                    </div>`;
+                break;
+                
+            default:
+                fieldHtml = `
+                    <div class="col-12">
+                        <div class="text-muted">Unsupported field type: ${field.type}</div>
+                    </div>`;
+        }
+        
+        return fieldHtml;
+    }).join('\n');
+}
+
+// Collect configuration data from schema-based form
+function collectConfigFromSchema(destType) {
+    const destinationType = availableDestinationTypes.find(dt => dt.type === destType);
+    
+    if (!destinationType || !destinationType.config_schema) {
+        return { config: {}, requiredFields: [] };
+    }
+    
+    const config = {};
+    const requiredFields = [];
+    const missingFields = [];
+    
+    for (const field of destinationType.config_schema.fields) {
+        const element = document.getElementById(field.name);
+        
+        if (!element) {
+            console.warn(`Field element not found: ${field.name}`);
+            continue;
+        }
+        
+        let value;
+        
+        if (field.type === 'checkbox') {
+            value = element.checked;
+        } else if (field.type === 'number') {
+            const numValue = parseFloat(element.value);
+            value = isNaN(numValue) ? undefined : numValue;
+        } else if (field.type === 'select') {
+            value = element.value || undefined;
+        } else {
+            value = element.value.trim() || undefined;
+        }
+        
+        // Handle required fields
+        if (field.required) {
+            if (field.type === 'checkbox') {
+                // For checkboxes, required means it must be checked
+                if (!value) {
+                    missingFields.push(field.label);
+                }
+            } else if (!value) {
+                missingFields.push(field.label);
+            }
+            requiredFields.push(value);
+        }
+        
+        // Only add non-undefined values to config
+        if (value !== undefined) {
+            config[field.name] = value;
+        }
+    }
+    
+    return { 
+        config, 
+        requiredFields, 
+        missingFields,
+        isValid: missingFields.length === 0 
+    };
+}
+
+// Populate form from schema and configuration data
+function populateConfigFromSchema(type, config) {
+    const destinationType = availableDestinationTypes.find(dt => dt.type === type);
+    
+    if (!destinationType || !destinationType.config_schema) {
+        console.warn(`Cannot populate form for destination type: ${type}`);
+        return;
+    }
+    
+    for (const field of destinationType.config_schema.fields) {
+        const element = document.getElementById(field.name);
+        
+        if (!element) {
+            console.warn(`Field element not found: ${field.name}`);
+            continue;
+        }
+        
+        const value = config[field.name];
+        
+        if (value !== undefined) {
+            if (field.type === 'checkbox') {
+                element.checked = Boolean(value);
+            } else {
+                element.value = value;
+            }
+        } else if (field.default !== undefined) {
+            // Use default value if no config value provided
+            if (field.type === 'checkbox') {
+                element.checked = Boolean(field.default);
+            } else {
+                element.value = field.default;
+            }
+        }
+    }
+}
+
+// Update configuration form based on destination type
+function updateConfigForm() {
+    const type = document.getElementById('destinationType').value;
+    console.log('updateConfigForm called with type:', type);
+    const configForm = document.getElementById('configForm');
+    const submitBtn = document.querySelector('#destinationForm button[type="submit"]');
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    const form = document.getElementById('destinationForm');
+    const isEditing = form.dataset.editingId;
+    
+    if (!type) {
+        configForm.innerHTML = '<div class="text-muted">Select a destination type to configure</div>';
+        submitBtn.disabled = true;
+        cancelBtn.style.display = 'none';
+        return;
+    }
+    
+    submitBtn.disabled = false;
+    
+    // Update button text and show/hide cancel button based on editing state
+    if (isEditing) {
+        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Update Favorite';
+        cancelBtn.style.display = 'inline-block';
+    } else {
+        submitBtn.innerHTML = '<i class="fas fa-star me-2"></i>Save as Favorite';
+        cancelBtn.style.display = 'none';
+    }
+    
+    // Find the destination type configuration schema
+    console.log('Available destination types:', availableDestinationTypes);
+    const destinationType = availableDestinationTypes.find(dt => dt.type === type);
+    console.log('Found destination type:', destinationType);
+    
+    if (!destinationType) {
+        configForm.innerHTML = '<div class="text-danger">Unknown destination type</div>';
+        return;
+    }
+    
+    if (!destinationType.available) {
+        configForm.innerHTML = `
+            <div class="alert alert-warning">
+                <strong>Destination Not Available</strong><br>
+                ${destinationType.error || 'Dependencies missing'}
+            </div>
+        `;
+        return;
+    }
+    
+    // Generate dynamic form based on schema
+    console.log('Generating form with schema:', destinationType.config_schema);
+    const formFields = generateFormFieldsFromSchema(destinationType.config_schema);
+    
+    configForm.innerHTML = `
+        <div class="row g-2">
+            ${formFields}
+        </div>
+    `;
+}
+
+// Handle destination form submission
+document.getElementById('destinationForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const name = document.getElementById('favoriteName').value.trim();
+    const description = document.getElementById('favoriteDescription').value.trim();
+    const type = document.getElementById('destinationType').value;
+    const editingId = this.dataset.editingId; // Check if we're editing an existing favorite
+    
+    if (!name) {
+        showAlert('error', 'Please enter a name for the favorite');
+        return;
+    }
+    
+    let config = {};
+    
+    // Build config using dynamic schema-based collection
+    const configResult = collectConfigFromSchema(type);
+    
+    if (!configResult.isValid) {
+        showAlert('error', `Missing required fields: ${configResult.missingFields.join(', ')}`);
+        return;
+    }
+    
+    config = configResult.config;
+    
+    try {
+        let response, url, method;
+        
+        if (editingId) {
+            // Update existing favorite
+            url = `/api/publisher/favorites/${editingId}`;
+            method = 'PUT';
+        } else {
+            // Create new favorite
+            url = '/api/publisher/favorites';
+            method = 'POST';
+        }
+        
+        response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: name,
+                description: description,
+                type: type,
+                config: config
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            const action = editingId ? 'updated' : 'saved';
+            showAlert('success', `Favorite "${name}" ${action} successfully!`);
+            loadFavoriteConfigs(); // Reload favorites list
+            
+            // Reset form and clear editing state
+            document.getElementById('destinationForm').reset();
+            delete this.dataset.editingId;
+            
+            // Reset button text
+            const submitBtn = document.querySelector('#destinationForm button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-star me-2"></i>Save as Favorite';
+            
+            updateConfigForm();
+        } else {
+            showAlert('error', `Failed to ${editingId ? 'update' : 'save'} favorite: ${result.error}`);
+        }
+    } catch (error) {
+        showAlert('error', `Failed to ${editingId ? 'update' : 'save'} favorite: ${error.message}`);
+    }
+});
+
+// Add destination to the list
+function addDestinationToList(type, config, id = null) {
+    const destination = { type, config, id: id || Date.now() };
+    destinations.push(destination);
+    updateDestinationsList();
+}
+
+// Update destinations list display
+function updateDestinationsList() {
+    const container = document.getElementById('activeDestinations');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    
+    if (destinations.length === 0) {
+        container.innerHTML = `
+            <div class="text-muted">
+                <i class="fas fa-info-circle me-2"></i>No destinations configured
+            </div>
+        `;
+        clearAllBtn.style.display = 'none';
+        return;
+    }
+    
+    clearAllBtn.style.display = 'block';
+    
+    const html = destinations.map(dest => {
+        let details = '';
+        let typeDisplay = '';
+        
+        if (dest.config && dest.config.details) {
+            // This is a loaded destination from server
+            details = dest.config.details;
+            typeDisplay = dest.type.toUpperCase();
+        } else {
+            // This is a newly configured destination
+            switch (dest.type) {
+                case 'mqtt':
+                    details = `${dest.config.server}:${dest.config.port}/${dest.config.topic}`;
+                    typeDisplay = 'MQTT';
+                    break;
+                case 'webhook':
+                    details = dest.config.url;
+                    typeDisplay = 'WEBHOOK';
+                    break;
+                case 'serial':
+                    details = `${dest.config.com_port} @ ${dest.config.baud} baud`;
+                    typeDisplay = 'SERIAL';
+                    break;
+                default:
+                    details = 'Unknown configuration';
+                    typeDisplay = dest.type.toUpperCase();
+            }
+        }
+        
+        const rateLimit = (dest.config && dest.config.rate_limit) ? dest.config.rate_limit : null;
+        
+        return `
+            <div class="card mb-2" id="dest-${dest.id}">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-primary me-2">${typeDisplay}</span>
+                            <small class="text-muted">${details}</small>
+                            ${rateLimit ? `<br><small class="text-muted">Rate limit: ${rateLimit}s</small>` : ''}
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-success me-1" onclick="testDestination('${dest.id}')" title="Test">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editDestination('${dest.id}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeDestination('${dest.id}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = html;
+}
+
+// Remove destination
+async function removeDestination(id) {
+    if (confirm('Remove this destination?')) {
+        try {
+            // Find the destination in our local array
+            const dest = destinations.find(d => d.id === id);
+            if (!dest) {
+                showAlert('error', 'Destination not found');
+                return;
+            }
+            
+            // If it's a server-side destination (has server ID), call delete API
+            if (typeof dest.id === 'string' && dest.id.length > 10) {
+                const response = await fetch(`/api/publisher/delete/${dest.id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    showAlert('success', 'Destination removed successfully');
+                } else {
+                    const result = await response.json();
+                    showAlert('error', `Failed to remove destination: ${result.error}`);
+                    return;
+                }
+            }
+            
+            // Remove from local array
+            destinations = destinations.filter(d => d.id !== id);
+            updateDestinationsList();
+        } catch (error) {
+            showAlert('error', `Failed to remove destination: ${error.message}`);
+        }
+    }
+}
+
+// Edit destination
+function editDestination(id) {
+    const dest = destinations.find(d => d.id === id);
+    if (!dest) {
+        showAlert('error', 'Destination not found');
+        return;
+    }
+    
+    // Set up the edit modal
+    showEditModal(dest);
+}
+
+// Clear all destinations
+function clearAllDestinations() {
+    if (confirm('Remove all destinations?')) {
+        destinations = [];
+        updateDestinationsList();
+    }
+}
+
+// Test destination
+function testDestination(id) {
+    const dest = destinations.find(d => d.id === id);
+    if (dest) {
+        showAlert('info', `Testing ${dest.type.toUpperCase()} destination...`);
+        // This would actually test the destination
+        setTimeout(() => {
+            showAlert('success', `${dest.type.toUpperCase()} destination test completed`);
+        }, 1000);
+    }
+}
+
+// Show edit modal
+function showEditModal(destination) {
+    const modal = new bootstrap.Modal(document.getElementById('editDestinationModal'));
+    
+    // Set destination type
+    document.getElementById('editDestinationType').value = destination.type.toUpperCase();
+    document.getElementById('editDestinationId').value = destination.id;
+    
+    // Get the current configuration
+    let config = destination.config;
+    if (config && config.details) {
+        // This is from server, use the separate config object
+        config = config.config || config;
+    }
+    
+    // Generate form fields based on destination type
+    const editConfigForm = document.getElementById('editConfigForm');
+    switch (destination.type) {
+        case 'mqtt':
+            editConfigForm.innerHTML = `
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label">MQTT Server</label>
+                        <input type="text" class="form-control" id="editMqttServer" value="${config.server || ''}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Port</label>
+                        <input type="number" class="form-control" id="editMqttPort" value="${config.port || 1883}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Topic</label>
+                        <input type="text" class="form-control" id="editMqttTopic" value="${config.topic || ''}" required>
+                        <div class="form-text">
+                            <small>Supports variables: {node_id}, {node_name}, {hostname}, {timestamp}, {date}, {time}, {pipeline_id}, {model_name}</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Rate Limit (sec)</label>
+                        <input type="number" class="form-control" id="editMqttRateLimit" value="${destination.rate_limit || ''}" step="0.1">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" id="editMqttUsername" value="${config.username || ''}" placeholder="Optional">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" id="editMqttPassword" placeholder="Leave blank to keep current">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editMqttIncludeImage" value="true" ${config.include_image_data ? 'checked' : ''}>
+                            <label class="form-check-label" for="editMqttIncludeImage">
+                                Include image data in messages
+                                <small class="text-muted d-block">Base64 encoded image will be included in the JSON payload (increases message size)</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            `;
+            break;
+            
+        case 'webhook':
+            editConfigForm.innerHTML = `
+                <div class="row g-2">
+                    <div class="col-12">
+                        <label class="form-label">Webhook URL</label>
+                        <input type="url" class="form-control" id="editWebhookUrl" value="${config.url || ''}" required>
+                        <div class="form-text">
+                            <small>Supports variables: {node_id}, {node_name}, {hostname}, {timestamp}, {date}, {time}, {pipeline_id}, {model_name}</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Timeout (sec)</label>
+                        <input type="number" class="form-control" id="editWebhookTimeout" value="${config.timeout || 30}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Rate Limit (sec)</label>
+                        <input type="number" class="form-control" id="editWebhookRateLimit" value="${destination.rate_limit || ''}" step="0.1">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editWebhookIncludeImage" value="true" ${config.include_image_data ? 'checked' : ''}>
+                            <label class="form-check-label" for="editWebhookIncludeImage">
+                                Include image data in messages
+                                <small class="text-muted d-block">Base64 encoded image will be included in the JSON payload (increases message size)</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            `;
+            break;
+            
+        case 'serial':
+            editConfigForm.innerHTML = `
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label">COM Port</label>
+                        <input type="text" class="form-control" id="editSerialPort" value="${config.com_port || ''}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Baud Rate</label>
+                        <select class="form-select" id="editSerialBaud">
+                            <option value="9600" ${config.baud == 9600 ? 'selected' : ''}>9600</option>
+                            <option value="19200" ${config.baud == 19200 ? 'selected' : ''}>19200</option>
+                            <option value="38400" ${config.baud == 38400 ? 'selected' : ''}>38400</option>
+                            <option value="57600" ${config.baud == 57600 ? 'selected' : ''}>57600</option>
+                            <option value="115200" ${config.baud == 115200 ? 'selected' : ''}>115200</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Rate Limit (sec)</label>
+                        <input type="number" class="form-control" id="editSerialRateLimit" value="${destination.rate_limit || ''}" step="0.1">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editSerialIncludeImage" value="true" ${config.include_image_data ? 'checked' : ''}>
+                            <label class="form-check-label" for="editSerialIncludeImage">
+                                Include image data in messages
+                                <small class="text-muted d-block">Base64 encoded image will be included in the JSON payload (increases message size)</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            `;
+            break;
+    }
+    
+    modal.show();
+}
+
+// Save destination edit
+async function saveDestinationEdit() {
+    try {
+        const id = document.getElementById('editDestinationId').value;
+        const type = document.getElementById('editDestinationType').value.toLowerCase();
+        
+        let config = {};
+        
+        // Build config based on type
+        switch (type) {
+            case 'mqtt':
+                config = {
+                    server: document.getElementById('editMqttServer').value,
+                    port: parseInt(document.getElementById('editMqttPort').value),
+                    topic: document.getElementById('editMqttTopic').value,
+                    username: document.getElementById('editMqttUsername').value || undefined,
+                    rate_limit: parseFloat(document.getElementById('editMqttRateLimit').value) || undefined,
+                    include_image_data: document.getElementById('editMqttIncludeImage').checked
+                };
+                // Only include password if it's provided
+                const password = document.getElementById('editMqttPassword').value;
+                if (password) {
+                    config.password = password;
+                }
+                break;
+                
+            case 'webhook':
+                config = {
+                    url: document.getElementById('editWebhookUrl').value,
+                    timeout: parseInt(document.getElementById('editWebhookTimeout').value),
+                    rate_limit: parseFloat(document.getElementById('editWebhookRateLimit').value) || undefined,
+                    include_image_data: document.getElementById('editWebhookIncludeImage').checked
+                };
+                break;
+                
+            case 'serial':
+                config = {
+                    com_port: document.getElementById('editSerialPort').value,
+                    baud: parseInt(document.getElementById('editSerialBaud').value),
+                    rate_limit: parseFloat(document.getElementById('editSerialRateLimit').value) || undefined,
+                    include_image_data: document.getElementById('editSerialIncludeImage').checked
+                };
+                break;
+        }
+        
+        // Send edit request to server
+        const response = await fetch(`/api/publisher/edit/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ config })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showAlert('success', 'Destination updated successfully!');
+            
+            // Update local destination object
+            const destIndex = destinations.findIndex(d => d.id === id);
+            if (destIndex !== -1) {
+                destinations[destIndex].config = config;
+                updateDestinationsList();
+            }
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editDestinationModal'));
+            modal.hide();
+        } else {
+            showAlert('error', `Failed to update destination: ${result.error}`);
+        }
+        
+    } catch (error) {
+        showAlert('error', `Failed to update destination: ${error.message}`);
+    }
+}
+
+// Test publish form handler
+document.getElementById('testPublishForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Get selected favorites
+    const selectedCheckboxes = document.querySelectorAll('input[id^="test-"]:checked');
+    const selectedFavoriteIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+    
+    if (selectedFavoriteIds.length === 0) {
+        showAlert('warning', 'Please select at least one favorite destination to test');
+        return;
+    }
+    
+    try {
+        const messageText = document.getElementById('testMessage').value;
+        const message = JSON.parse(messageText);
+        
+        showAlert('info', `Sending test message to ${selectedFavoriteIds.length} selected destination(s)...`);
+        
+        const response = await fetch('/api/publisher/test-favorites', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                message: message,
+                favorite_ids: selectedFavoriteIds
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            if (result.status === 'warning') {
+                showAlert('warning', result.message);
+            } else {
+                publishStats.total++;
+                document.getElementById('totalPublished').textContent = publishStats.total;
+                showAlert('success', `Test message sent to ${result.destinations_count || selectedFavoriteIds.length} destination(s)`);
+            }
+        } else {
+            publishStats.errors++;
+            document.getElementById('publishErrors').textContent = publishStats.errors;
+            showAlert('error', `Failed to send test message: ${result.error}`);
+        }
+        
+    } catch (error) {
+        publishStats.errors++;
+        document.getElementById('publishErrors').textContent = publishStats.errors;
+        if (error instanceof SyntaxError) {
+            showAlert('error', 'Invalid JSON in test message');
+        } else {
+            showAlert('error', `Failed to send test message: ${error.message}`);
+        }
+    }
+});
+
+// This function is now defined below with schema support
+
+// Update destination type selector with available types
+function updateDestinationTypeSelector(destinationTypes) {
+    const selector = document.getElementById('destinationTypeSelector');
+    
+    // Sort: primary types first, then alphabetically by name
+    const sortedTypes = destinationTypes.sort((a, b) => {
+        if (a.primary !== b.primary) {
+            return b.primary - a.primary; // Primary first
+        }
+        return a.name.localeCompare(b.name);
+    });
+    
+    const html = sortedTypes.map(type => {
+        const availabilityClass = type.available ? '' : ' disabled';
+        const availabilityTitle = type.available ? '' : ` title="Not available: ${type.error || 'Dependencies missing'}"`;
+        
+        return `
+            <div class="button-selector-item${availabilityClass}" data-value="${type.type}" 
+                 onclick="${type.available ? `selectDestinationType('${type.type}')` : ''}"${availabilityTitle}>
+                <div class="icon"><i class="${type.icon}"></i></div>
+                <div class="label">${type.name}</div>
+                <div class="description">${type.description}</div>
+                ${!type.available ? '<div class="text-muted"><small>Dependencies missing</small></div>' : ''}
+            </div>
+        `;
+    }).join('');
+    
+    selector.innerHTML = html;
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    loadAvailableDestinationTypes();
+    loadFavoriteConfigs();
+});
+
+// Load available destination types with their schemas
+async function loadAvailableDestinationTypes() {
+    try {
+        console.log('Loading destination types...');
+        const response = await fetch('/api/publisher/destination-types');
+        console.log('Response status:', response.status);
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Destination types data:', data);
+            availableDestinationTypes = data.destination_types; // Store for later use
+            console.log('Available destination types:', availableDestinationTypes);
+            updateDestinationTypeSelector(data.destination_types);
+        } else {
+            console.error('Failed to load destination types, status:', response.status);
+        }
+    } catch (error) {
+        console.error('Error loading destination types:', error);
+    }
+}
+
+// Favorites Management Functions
+
+// Load favorite configurations
+async function loadFavoriteConfigs() {
+    try {
+        const response = await fetch('/api/publisher/favorites');
+        if (response.ok) {
+            const data = await response.json();
+            favoriteConfigs = data.favorites || [];
+            updateFavoritesList();
+        }
+    } catch (error) {
+        console.error('Failed to load favorite configs:', error);
+    }
+}
+
+// Update favorites list display
+function updateFavoritesList() {
+    const listDiv = document.getElementById('favoritesList');
+    
+    if (favoriteConfigs.length === 0) {
+        listDiv.innerHTML = '<div class="text-muted"><i class="fas fa-info-circle me-2"></i>No favorite configurations saved</div>';
+        return;
+    }
+    
+    const html = favoriteConfigs.map(fav => {
+        const createdDate = new Date(fav.created_at).toLocaleDateString();
+        
+        return `
+            <div class="card mb-2" id="favorite-${fav.id}">
+                <div class="card-body py-2">
+                    <div class="d-flex align-items-start">
+                        <div class="form-check me-3">
+                            <input class="form-check-input" type="checkbox" id="test-${fav.id}" value="${fav.id}">
+                            <label class="form-check-label" for="test-${fav.id}">
+                                <span class="visually-hidden">Select for testing</span>
+                            </label>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">${fav.name}</h6>
+                            <small class="text-muted">${fav.type.toUpperCase()}</small>
+                            ${fav.description ? `<p class="mb-1 small">${fav.description}</p>` : ''}
+                            <small class="text-muted">Created: ${createdDate}</small>
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="useFavoriteConfig('${fav.id}')" title="Load this configuration for editing">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteFavoriteConfig('${fav.id}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    listDiv.innerHTML = html;
+}
+
+// Use a favorite configuration
+function useFavoriteConfig(favoriteId) {
+    const favorite = favoriteConfigs.find(f => f.id === favoriteId);
+    if (!favorite) {
+        showAlert('error', 'Favorite configuration not found');
+        return;
+    }
+    
+    // Populate name and description fields
+    document.getElementById('favoriteName').value = favorite.name;
+    document.getElementById('favoriteDescription').value = favorite.description || '';
+    
+    // Set the destination type
+    document.getElementById('destinationType').value = favorite.type;
+    selectDestinationType(favorite.type);
+    
+    // Store the original ID for updating
+    document.getElementById('destinationForm').dataset.editingId = favoriteId;
+    
+    // Wait a bit for the form to render, then populate it
+    setTimeout(() => {
+        populateConfigForm(favorite.type, favorite.config);
+        
+        // Update button text to indicate editing
+        const submitBtn = document.querySelector('#destinationForm button[type="submit"]');
+        const cancelBtn = document.getElementById('cancelEditBtn');
+        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Update Favorite';
+        cancelBtn.style.display = 'inline-block';
+        
+        showAlert('success', `Loaded favorite for editing: ${favorite.name}`);
+    }, 100);
+}
+
+// Cancel editing mode
+function cancelEdit() {
+    const form = document.getElementById('destinationForm');
+    
+    // Clear editing state
+    delete form.dataset.editingId;
+    
+    // Reset form
+    form.reset();
+    
+    // Reset button states
+    const submitBtn = document.querySelector('#destinationForm button[type="submit"]');
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    submitBtn.innerHTML = '<i class="fas fa-star me-2"></i>Save as Favorite';
+    cancelBtn.style.display = 'none';
+    
+    // Reset form state
+    updateConfigForm();
+    
+    showAlert('info', 'Edit cancelled');
+}
+
+// Populate configuration form with favorite data
+function populateConfigForm(type, config) {
+    // Use the dynamic schema-based population function
+    populateConfigFromSchema(type, config);
+}
+
+// Delete favorite configuration
+async function deleteFavoriteConfig(favoriteId) {
+    const favorite = favoriteConfigs.find(f => f.id === favoriteId);
+    if (!favorite) {
+        showAlert('error', 'Favorite configuration not found');
+        return;
+    }
+    
+    if (!confirm(`Delete favorite "${favorite.name}"?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/publisher/favorites/${favoriteId}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showAlert('success', result.message);
+            loadFavoriteConfigs(); // Reload favorites list
+        } else {
+            showAlert('error', result.error);
+        }
+        
+    } catch (error) {
+        showAlert('error', `Failed to delete favorite: ${error.message}`);
+    }
+}
+</script>
+{% endblock %}

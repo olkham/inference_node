@@ -1,0 +1,535 @@
+{% extends "base.html" %}
+
+{% block title %}Node Information - InferNode{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- System Information -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-server me-2"></i>System Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Node Status:</strong></td>
+                                <td><span id="nodeStatusDisplay" class="badge bg-success">Online</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Node ID:</strong></td>
+                                <td id="nodeId" class="text-muted">{{ node_info.node_id if node_info else 'N/A' }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>API Port:</strong></td>
+                                <td id="apiPort" class="text-muted">{{ node_info.api_port if node_info else 'N/A' }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Version:</strong></td>
+                                <td id="version" class="text-muted">{{ node_info.version if node_info else 'Loading...' }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Platform:</strong></td>
+                                <td id="platform" class="text-muted">{{ node_info.platform if node_info else 'Loading...' }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Architecture:</strong></td>
+                                <td id="architecture" class="text-muted">{{ node_info.architecture if node_info else 'Loading...' }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Python Version:</strong></td>
+                                <td id="pythonVersion" class="text-muted">{{ node_info.python_version if node_info else 'Loading...' }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Hostname:</strong></td>
+                                <td id="hostname" class="text-muted">Loading...</td>
+                            </tr>
+                            <tr>
+                                <td><strong>IP Address:</strong></td>
+                                <td id="ipAddress" class="text-muted">Loading...</td>
+                            </tr>
+                            <tr>
+                                <td><strong>MAC Address:</strong></td>
+                                <td id="macAddress" class="text-muted">Loading...</td>
+                            </tr>
+                            <tr>
+                                <td><strong>System Uptime:</strong></td>
+                                <td id="systemUptime" class="text-muted">Loading...</td>
+                            </tr>
+                            <tr>
+                                <td><strong>App Uptime:</strong></td>
+                                <td id="appUptime" class="text-muted">Loading...</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Started:</strong></td>
+                                <td id="startTime" class="text-muted">Loading...</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hardware Information -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-microchip me-2"></i>Hardware Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>CPU</h6>
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td><strong>Model:</strong></td>
+                                <td id="cpuModel" class="text-muted">Loading...</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Cores:</strong></td>
+                                <td id="cpuCores" class="text-muted">Loading...</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Threads:</strong></td>
+                                <td id="cpuThreads" class="text-muted">Loading...</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Frequency:</strong></td>
+                                <td id="cpuFreq" class="text-muted">Loading...</td>
+                            </tr>
+                        </table>
+
+                        <h6>Memory</h6>
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td><strong>Total:</strong></td>
+                                <td id="memoryTotal" class="text-muted">Loading...</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Available:</strong></td>
+                                <td id="memoryAvailable" class="text-muted">Loading...</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Used:</strong></td>
+                                <td id="memoryUsed" class="text-muted">Loading...</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>GPU</h6>
+                        <div id="gpuInfo">
+                            <div class="text-muted">Loading...</div>
+                        </div>
+
+                        <h6 class="mt-3">Storage</h6>
+                        <div id="storageInfo">
+                            <div class="text-muted">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Node Configuration -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cog me-2"></i>Node Configuration
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="configForm">
+                    <div class="mb-3">
+                        <label for="nodeName" class="form-label">Node Name</label>
+                        <input type="text" class="form-control" id="nodeName" placeholder="Enter node name">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="logLevel" class="form-label">Log Level</label>
+                        <select class="form-select" id="logLevel">
+                            <option value="DEBUG">DEBUG</option>
+                            <option value="INFO" selected>INFO</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="ERROR">ERROR</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="webPort" class="form-label">Web Interface Port</label>
+                        <input type="number" class="form-control" id="webPort" min="1000" max="65535" value="5000">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-save me-2"></i>Save Configuration
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-heartbeat me-2"></i>System Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="text-center">
+                            <div class="h5 text-success mb-1" id="statusIndicator">
+                                <i class="fas fa-circle"></i>
+                            </div>
+                            <small class="text-muted">Status</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <div class="h5 text-primary mb-1" id="loadAverage">0.0</div>
+                            <small class="text-muted">Load Avg</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <div class="h5 text-warning mb-1" id="inferenceCount">0</div>
+                            <small class="text-muted">Inferences</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <div class="h5 text-info mb-1" id="errorCount">0</div>
+                            <small class="text-muted">Errors</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-warning" onclick="restartNode()">
+                        <i class="fas fa-redo me-2"></i>Restart Node
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightning-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-success" onclick="exportConfig()">
+                        <i class="fas fa-download me-2"></i>Export Config
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="refreshInfo()">
+                        <i class="fas fa-sync me-2"></i>Refresh Info
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Alert function now handled by centralized notification system in app.js
+
+// Load node information
+async function loadNodeInfo() {
+    try {
+        const response = await fetch('/api/node/info');
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            updateNodeInfo(data.data);
+        } else {
+            console.error('Failed to load node info:', data.error);
+            showAlert('error', 'Failed to load node information');
+        }
+    } catch (error) {
+        console.error('Error loading node info:', error);
+        showAlert('error', 'Error loading node information');
+    }
+}
+
+// Update node information display
+function updateNodeInfo(info) {
+    // System information
+    document.getElementById('nodeId').textContent = info.node_id || 'Unknown';
+    document.getElementById('version').textContent = info.version || '1.0.0';
+    document.getElementById('platform').textContent = info.platform || 'Unknown';
+    document.getElementById('architecture').textContent = info.architecture || 'Unknown';
+    document.getElementById('pythonVersion').textContent = info.python_version || 'Unknown';
+    document.getElementById('hostname').textContent = info.hostname || 'Unknown';
+    document.getElementById('ipAddress').textContent = info.ip_address || 'Unknown';
+    document.getElementById('macAddress').textContent = info.mac_address || 'Unknown';
+    document.getElementById('systemUptime').textContent = formatUptime(info.uptime || 0);
+    document.getElementById('appUptime').textContent = formatUptime(info.app_uptime || 0);
+    document.getElementById('startTime').textContent = info.start_time || 'Unknown';
+
+    // Hardware information
+    if (info.hardware) {
+        const hw = info.hardware;
+        document.getElementById('cpuModel').textContent = hw.cpu_model || 'Unknown';
+        document.getElementById('cpuCores').textContent = hw.cpu_cores || 'Unknown';
+        document.getElementById('cpuThreads').textContent = hw.cpu_threads || 'Unknown';
+        document.getElementById('cpuFreq').textContent = hw.cpu_freq ? `${hw.cpu_freq} MHz` : 'Unknown';
+        document.getElementById('memoryTotal').textContent = formatBytes(hw.memory_total || 0);
+        document.getElementById('memoryAvailable').textContent = formatBytes(hw.memory_available || 0);
+        document.getElementById('memoryUsed').textContent = formatBytes(hw.memory_used || 0);
+        
+        // GPU information
+        updateGPUInfo(hw.gpu_info);
+        
+        // Storage information
+        updateStorageInfo(hw.storage_info);
+    }
+
+    // Update configuration form
+    updateConfiguration(info.config);
+    
+    // Update status
+    updateStatus(info.status);
+}
+
+// Update GPU information
+function updateGPUInfo(gpuInfo) {
+    const container = document.getElementById('gpuInfo');
+    
+    if (!gpuInfo || gpuInfo.length === 0) {
+        container.innerHTML = '<div class="text-muted">No GPU detected</div>';
+        return;
+    }
+    
+    const html = gpuInfo.map(gpu => `
+        <div class="mb-2">
+            <strong>${gpu.name}</strong><br>
+            <small class="text-muted">
+                Type: ${gpu.type}<br>
+                Memory: ${formatBytes(gpu.memory_total || 0)}<br>
+                Driver: ${gpu.driver_version || 'Unknown'}
+            </small>
+        </div>
+    `).join('');
+    
+    container.innerHTML = html;
+}
+
+// Update storage information
+function updateStorageInfo(storageInfo) {
+    const container = document.getElementById('storageInfo');
+    
+    if (!storageInfo || storageInfo.length === 0) {
+        container.innerHTML = '<div class="text-muted">No storage info</div>';
+        return;
+    }
+    
+    const html = storageInfo.map(disk => `
+        <div class="mb-2">
+            <strong>${disk.device}</strong><br>
+            <div class="progress progress-sm">
+                <div class="progress-bar" style="width: ${disk.percent.toFixed(1)}%"></div>
+            </div>
+            <small class="text-muted">
+                ${formatBytes(disk.used)} / ${formatBytes(disk.total)} (${disk.percent.toFixed(1)}%)<br>
+                Mount: ${disk.mountpoint}
+            </small>
+        </div>
+    `).join('');
+    
+    container.innerHTML = html;
+}
+
+// Update configuration form
+function updateConfiguration(config) {
+    if (!config) return;
+    
+    if (config.node_name) document.getElementById('nodeName').value = config.node_name;
+    if (config.log_level) document.getElementById('logLevel').value = config.log_level;
+    if (config.web_port) document.getElementById('webPort').value = config.web_port;
+}
+
+// Update status indicators
+function updateStatus(status) {
+    if (!status) return;
+    
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusClass = status.healthy ? 'text-success' : 'text-danger';
+    statusIndicator.innerHTML = `<i class="fas fa-circle ${statusClass}"></i>`;
+    
+    document.getElementById('loadAverage').textContent = (status.load_average || 0).toFixed(2);
+    document.getElementById('inferenceCount').textContent = status.inference_count || 0;
+    document.getElementById('errorCount').textContent = status.error_count || 0;
+}
+
+// Configuration form handler
+document.getElementById('configForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const config = {
+        node_name: document.getElementById('nodeName').value,
+        log_level: document.getElementById('logLevel').value,
+        web_port: parseInt(document.getElementById('webPort').value)
+    };
+    
+    try {
+        const response = await fetch('/api/node/config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(config)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showAlert('success', 'Configuration updated successfully!');
+        } else {
+            showAlert('error', `Failed to update configuration: ${result.error}`);
+        }
+    } catch (error) {
+        showAlert('error', `Failed to update configuration: ${error.message}`);
+    }
+});
+
+// Action functions
+async function restartNode() {
+    if (!confirm('Are you sure you want to restart the node? This will interrupt any running inferences.')) {
+        return;
+    }
+    
+    try {
+        showAlert('warning', 'Restarting node...');
+        
+        const response = await fetch('/api/node/restart', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showAlert('info', 'Node is restarting. This page will reload in 5 seconds...');
+            
+            // Wait for node to restart and then reload the page
+            setTimeout(() => {
+                location.reload();
+            }, 5000);
+        } else {
+            showAlert('error', `Failed to restart node: ${result.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        showAlert('error', `Error restarting node: ${error.message}`);
+    }
+}
+
+async function exportConfig() {
+    try {
+        showAlert('info', 'Exporting configuration...');
+        
+        // Fetch current node information
+        const response = await fetch('/api/node/info');
+        const data = await response.json();
+        
+        if (!response.ok || !data.success) {
+            showAlert('error', 'Failed to fetch node configuration');
+            return;
+        }
+        
+        // Create export data structure
+        const exportData = {
+            export_timestamp: new Date().toISOString(),
+            export_date: new Date().toLocaleString(),
+            node_info: {
+                node_id: data.data.node_id,
+                version: data.data.version,
+                platform: data.data.platform,
+                architecture: data.data.architecture,
+                python_version: data.data.python_version,
+                hostname: data.data.hostname,
+                ip_address: data.data.ip_address,
+                mac_address: data.data.mac_address
+            },
+            configuration: data.data.config || {},
+            hardware: {
+                cpu_model: data.data.hardware?.cpu_model,
+                cpu_cores: data.data.hardware?.cpu_cores,
+                cpu_threads: data.data.hardware?.cpu_threads,
+                memory_total: data.data.hardware?.memory_total,
+                gpu_info: data.data.hardware?.gpu_info || [],
+                storage_info: data.data.hardware?.storage_info || []
+            },
+            status: data.data.status || {}
+        };
+        
+        // Create blob and download
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Create filename with timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+        const nodeId = data.data.node_id || 'unknown';
+        a.download = `infernode-config-${nodeId}-${timestamp}.json`;
+        
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        showAlert('success', 'Configuration exported successfully');
+        
+    } catch (error) {
+        console.error('Export error:', error);
+        showAlert('error', `Failed to export configuration: ${error.message}`);
+    }
+}
+
+function refreshInfo() {
+    showAlert('info', 'Refreshing node information...');
+    loadNodeInfo();
+}
+
+// Utility functions
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function formatUptime(seconds) {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${days}d ${hours}h ${minutes}m`;
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    loadNodeInfo();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(loadNodeInfo, 30000);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,683 @@
+{% extends "base.html" %}
+
+{% block title %}Node Discovery - InferNode{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header and Controls -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <h4 class="mb-1">
+                        <i class="fas fa-network-wired me-2"></i>Network Node Discovery
+                    </h4>
+                    <p class="text-muted mb-0">Discover and manage InferNode instances on your network</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-secondary btn-sm active" id="cardViewBtn" onclick="switchView('card')">
+                            <i class="fas fa-th-large me-1"></i>Cards
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" id="listViewBtn" onclick="switchView('list')">
+                            <i class="fas fa-list me-1"></i>List
+                        </button>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshDiscovery()" id="refreshBtn">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Discovery Status -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <div id="discoveryStatus" class="status-indicator bg-success"></div>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Discovery Status</h6>
+                                    <small class="text-muted" id="discoveryStatusText">Running</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h4 class="mb-0 text-primary" id="totalNodes">0</h4>
+                                <small class="text-muted">Total Nodes</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h4 class="mb-0 text-success" id="onlineNodes">0</h4>
+                                <small class="text-muted">Online Nodes</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Discovered Nodes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-server me-2"></i>Discovered Nodes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Loading State -->
+                    <div id="loadingIndicator" class="text-center py-4" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Discovering nodes...</p>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="emptyState" class="text-center py-5">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+                        <h5 class="text-muted">No Nodes Discovered</h5>
+                        <p class="text-muted">Discovery service is running continuously. Nodes will appear here automatically when found on the network.</p>
+                    </div>
+
+                    <!-- Nodes Card View -->
+                    <div id="nodesCardView" style="display: none;">
+                        <div class="row g-3" id="nodesContainer">
+                            <!-- Node cards will be inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Nodes List View -->
+                    <div id="nodesListView" style="display: none;">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-dark">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th><i class="fas fa-circle me-1"></i>Status</th>
+                                        <th><i class="fas fa-server me-1"></i>Node Name</th>
+                                        <th><i class="fas fa-network-wired me-1"></i>Address</th>
+                                        <th><i class="fas fa-desktop me-1"></i>Platform</th>
+                                        <th><i class="fas fa-microchip me-1"></i>CPU</th>
+                                        <th><i class="fas fa-memory me-1"></i>RAM</th>
+                                        <th><i class="fas fa-video me-1"></i>GPU</th>
+                                        <th><i class="fas fa-cogs me-1"></i>Engines</th>
+                                        <th><i class="fas fa-project-diagram me-1"></i>Pipelines</th>
+                                        <th><i class="fas fa-clock me-1"></i>Response</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="nodesTableBody">
+                                    <!-- Node rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Node Details Modal -->
+<div class="modal fade" id="nodeDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nodeDetailsTitle">
+                    <i class="fas fa-server me-2"></i>Node Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="nodeDetailsContent">
+                <!-- Node details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="openNodeBtn" onclick="openNode()">
+                    <i class="fas fa-external-link-alt me-1"></i>Open Node
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-indicator.bg-success {
+    background-color: #28a745 !important;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3);
+}
+
+.status-indicator.bg-danger {
+    background-color: #dc3545 !important;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.3);
+}
+
+.status-indicator.bg-warning {
+    background-color: #ffc107 !important;
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.3);
+}
+
+.status-indicator.bg-secondary {
+    background-color: #6c757d !important;
+}
+
+.node-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    border: 1px solid #495057 !important;
+}
+
+.node-card:hover {
+    border: 1px solid #6c757d !important;
+}
+
+.node-status-online {
+    color: #28a745;
+}
+
+.node-status-offline {
+    color: #dc3545;
+}
+</style>
+
+<script>
+let discoveredNodes = [];
+let currentNodeId = null;
+let currentView = 'card'; // 'card' or 'list'
+
+// Load and refresh discovered nodes
+async function loadDiscoveredNodes() {
+    try {
+        const response = await fetch('/api/discovery/nodes');
+        const data = await response.json();
+        
+        if (response.ok) {
+            discoveredNodes = data.nodes || [];
+            updateNodesDisplay();
+            updateStatistics();
+        } else {
+            showAlert('error', 'Failed to load discovered nodes: ' + data.error);
+        }
+    } catch (error) {
+        showAlert('error', 'Error loading discovered nodes: ' + error.message);
+    }
+}
+
+// Update nodes display
+function updateNodesDisplay() {
+    const emptyState = document.getElementById('emptyState');
+    const nodesCardView = document.getElementById('nodesCardView');
+    const nodesListView = document.getElementById('nodesListView');
+    
+    if (discoveredNodes.length === 0) {
+        emptyState.style.display = 'block';
+        nodesCardView.style.display = 'none';
+        nodesListView.style.display = 'none';
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    
+    if (currentView === 'card') {
+        nodesCardView.style.display = 'block';
+        nodesListView.style.display = 'none';
+        updateCardView();
+    } else {
+        nodesCardView.style.display = 'none';
+        nodesListView.style.display = 'block';
+        updateListView();
+    }
+}
+
+// Update card view
+function updateCardView() {
+    const container = document.getElementById('nodesContainer');
+    container.innerHTML = '';
+    
+    discoveredNodes.forEach(node => {
+        const nodeCard = createNodeCard(node);
+        container.appendChild(nodeCard);
+    });
+}
+
+// Update list view
+function updateListView() {
+    const tableBody = document.getElementById('nodesTableBody');
+    tableBody.innerHTML = '';
+    
+    discoveredNodes.forEach(node => {
+        const nodeRow = createNodeRow(node);
+        tableBody.appendChild(nodeRow);
+    });
+}
+
+// Create node card element
+function createNodeCard(node) {
+    const col = document.createElement('div');
+    col.className = 'col-md-6 col-lg-4';
+    
+    const statusIcon = node.status === 'online' ? 'fas fa-check-circle node-status-online' : 'fas fa-times-circle node-status-offline';
+    // Debug GPU status
+    console.log('GPU data for node:', node.node_name, node.gpu);
+    
+    // Get GPU count from the data
+    const gpuCount = node.gpu && node.gpu.count ? node.gpu.count : 0;
+    
+    // GPU icon is always white, same as dashboard
+    const gpuStatus = '<i class="fas fa-video fa-2x mb-2 text-light"></i>';
+    const responseTime = node.response_time ? `${Math.round(node.response_time)}ms` : 'N/A';
+    
+    col.innerHTML = `
+        <div class="card node-card h-100 bg-dark text-white border-secondary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h6 class="card-title mb-0 text-white">${node.node_name}</h6>
+                    <span class="badge bg-${node.status === 'online' ? 'success' : 'danger'} badge-sm">${node.status}</span>
+                </div>
+                
+                <div class="text-muted small mb-3">
+                    <div><i class="fas fa-network-wired me-1"></i>${node.ip_address}:${node.port}</div>
+                    <div><i class="fas fa-desktop me-1"></i>${node.platform}</div>
+                    <div><i class="fas fa-clock me-1"></i>Response: ${responseTime}</div>
+                </div>
+                
+                <!-- Hardware Metrics -->
+                <div class="row g-2 mb-3">
+                    <div class="col-4">
+                        <div class="card border-secondary bg-secondary bg-opacity-25" style="min-height: 80px;">
+                            <div class="card-body text-center py-2 d-flex flex-column justify-content-center align-items-center">
+                                <i class="fas fa-microchip fa-2x mb-2 text-light"></i>
+                                <div class="fw-bold text-white">${node.cpu_count}</div>
+                                <small class="text-muted">CPU</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="card border-secondary bg-secondary bg-opacity-25" style="min-height: 80px;">
+                            <div class="card-body text-center py-2 d-flex flex-column justify-content-center align-items-center">
+                                <i class="fas fa-memory fa-2x mb-2 text-light"></i>
+                                <div class="fw-bold text-white">${Math.round(node.memory_gb)}GB</div>
+                                <small class="text-muted">RAM</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="card border-secondary bg-secondary bg-opacity-25" style="min-height: 80px;">
+                            <div class="card-body text-center py-2 d-flex flex-column justify-content-center align-items-center">
+                                ${gpuStatus}
+                                <div class="fw-bold text-white">${gpuCount}</div>
+                                <small class="text-muted">GPU</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                ${node.available_engines && node.available_engines.length > 0 ? `
+                <div class="mb-3">
+                    <small class="text-muted">Engines:</small>
+                    <div class="mt-1">
+                        ${node.available_engines.map(engine => 
+                            `<span class="badge bg-secondary badge-sm me-1">${engine}</span>`
+                        ).join('')}
+                    </div>
+                </div>
+                ` : ''}
+                
+                ${node.pipeline_info ? `
+                <!-- Pipeline Metrics -->
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="card border-primary" style="background: linear-gradient(135deg, #0d6efd 0%, #084298 100%);">
+                            <div class="card-body text-center py-2">
+                                <div class="fw-bold text-white" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">${node.pipeline_info.total_pipelines || 0}</div>
+                                <small class="text-white" style="text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Total</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card border-success" style="background: linear-gradient(135deg, #198754 0%, #146c43 100%);">
+                            <div class="card-body text-center py-2">
+                                <div class="fw-bold text-white" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">${node.pipeline_info.active_pipelines || 0}</div>
+                                <small class="text-white" style="text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Active</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="card-footer bg-dark bg-opacity-50 border-secondary">
+                <div class="btn-group w-100" role="group">
+                    <button class="btn btn-outline-light btn-sm" onclick="pingNode('${node.node_id}')">
+                        <i class="fas fa-heart me-1"></i>Ping
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="showNodeDetails('${node.node_id}')">
+                        <i class="fas fa-info-circle me-1"></i>Details
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="openNodeInNewTab('${node.url}')">
+                        <i class="fas fa-external-link-alt me-1"></i>Open
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return col;
+}
+
+// Create node row element for list view
+function createNodeRow(node) {
+    const row = document.createElement('tr');
+    row.className = 'align-middle';
+    
+    const statusIcon = node.status === 'online' ? 
+        '<div class="status-indicator bg-success d-inline-block"></div>' : 
+        '<div class="status-indicator bg-danger d-inline-block"></div>';
+    
+    const gpuCount = node.gpu && node.gpu.count ? node.gpu.count : 0;
+    const responseTime = node.response_time ? `${Math.round(node.response_time)}ms` : 'N/A';
+    
+    const enginesDisplay = node.available_engines && node.available_engines.length > 0 ? 
+        node.available_engines.slice(0, 2).map(engine => 
+            `<span class="badge bg-secondary badge-sm me-1">${engine}</span>`
+        ).join('') + (node.available_engines.length > 2 ? ` +${node.available_engines.length - 2}` : '') :
+        '<span class="text-muted">None</span>';
+    
+    const pipelineInfo = node.pipeline_info ? 
+        `<span class="text-info">${node.pipeline_info.active_pipelines || 0}</span>/<span class="text-primary">${node.pipeline_info.total_pipelines || 0}</span>` : 
+        '<span class="text-muted">N/A</span>';
+    
+    row.innerHTML = `
+        <td>${statusIcon}</td>
+        <td>
+            <div class="fw-bold">${node.node_name}</div>
+            <small class="text-muted">${node.node_id.substring(0, 8)}...</small>
+        </td>
+        <td>
+            <div>${node.ip_address}:${node.port}</div>
+            <small class="text-muted">Last seen: ${new Date(node.last_seen).toLocaleTimeString()}</small>
+        </td>
+        <td>
+            <div class="d-flex align-items-center">
+                ${getPlatformIcon(node.platform).replace('me-1', 'me-1 fa-lg')}
+            </div>
+        </td>
+        <td>
+            <span class="badge bg-info">${node.cpu_count}</span>
+        </td>
+        <td>
+            <span class="badge bg-warning text-dark">${Math.round(node.memory_gb)}GB</span>
+        </td>
+        <td>
+            <span class="badge bg-secondary">${gpuCount}</span>
+        </td>
+        <td>
+            <div class="d-flex flex-wrap gap-1">
+                ${enginesDisplay}
+            </div>
+        </td>
+        <td>${pipelineInfo}</td>
+        <td>
+            <span class="badge ${node.response_time && node.response_time < 100 ? 'bg-success' : 
+                                node.response_time && node.response_time < 500 ? 'bg-warning text-dark' : 'bg-danger'}">${responseTime}</span>
+        </td>
+        <td>
+            <div class="btn-group btn-group-sm" role="group">
+                <button class="btn btn-outline-light btn-sm" onclick="pingNode('${node.node_id}')" title="Ping">
+                    <i class="fas fa-heart"></i>
+                </button>
+                <button class="btn btn-outline-info btn-sm" onclick="showNodeDetails('${node.node_id}')" title="Details">
+                    <i class="fas fa-info-circle"></i>
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="openNodeInNewTab('${node.url}')" title="Open">
+                    <i class="fas fa-external-link-alt"></i>
+                </button>
+            </div>
+        </td>
+    `;
+    
+    return row;
+}
+
+// Get platform icon based on platform string
+function getPlatformIcon(platform) {
+    const platformLower = platform.toLowerCase();
+    
+    if (platformLower.includes('windows')) {
+        return '<i class="fab fa-windows text-info me-1"></i>';
+    } else if (platformLower.includes('linux') || platformLower.includes('ubuntu') || platformLower.includes('debian') || platformLower.includes('centos') || platformLower.includes('rhel') || platformLower.includes('fedora')) {
+        return '<i class="fab fa-linux text-warning me-1"></i>';
+    } else if (platformLower.includes('darwin') || platformLower.includes('mac') || platformLower.includes('osx')) {
+        return '<i class="fab fa-apple text-light me-1"></i>';
+    } else {
+        return '<i class="fas fa-desktop text-secondary me-1"></i>';
+    }
+}
+
+// Switch between card and list views
+function switchView(view) {
+    currentView = view;
+    
+    // Update button states
+    const cardBtn = document.getElementById('cardViewBtn');
+    const listBtn = document.getElementById('listViewBtn');
+    
+    if (view === 'card') {
+        cardBtn.classList.add('active');
+        listBtn.classList.remove('active');
+    } else {
+        cardBtn.classList.remove('active');
+        listBtn.classList.add('active');
+    }
+    
+    // Update display
+    updateNodesDisplay();
+}
+
+// Update statistics
+function updateStatistics() {
+    const totalNodes = discoveredNodes.length;
+    const onlineNodes = discoveredNodes.filter(node => node.status === 'online').length;
+    
+    document.getElementById('totalNodes').textContent = totalNodes;
+    document.getElementById('onlineNodes').textContent = onlineNodes;
+}
+
+// Discovery control functions - removed as discovery runs continuously
+
+async function refreshDiscovery() {
+    const refreshBtn = document.getElementById('refreshBtn');
+    refreshBtn.disabled = true;
+    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Refreshing...';
+    
+    try {
+        // Call the refresh endpoint to trigger fresh probing of all nodes
+        const response = await fetch('/api/discovery/nodes/refresh', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+            discoveredNodes = data.nodes || [];
+            updateNodesDisplay();
+            updateStatistics();
+            showAlert('success', 'Nodes refreshed successfully');
+        } else {
+            showAlert('error', 'Failed to refresh nodes: ' + data.error);
+        }
+    } catch (error) {
+        showAlert('error', 'Error refreshing nodes: ' + error.message);
+    } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Refresh';
+    }
+}
+
+// Node interaction functions
+async function pingNode(nodeId) {
+    try {
+        const response = await fetch(`/api/discovery/nodes/${nodeId}/control`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'ping' })
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+            showAlert('success', `Node pinged successfully: ${data.message}`);
+            await loadDiscoveredNodes(); // Refresh to show updated response time
+        } else {
+            showAlert('error', 'Failed to ping node: ' + data.error);
+        }
+    } catch (error) {
+        showAlert('error', 'Error pinging node: ' + error.message);
+    }
+}
+
+async function showNodeDetails(nodeId) {
+    currentNodeId = nodeId;
+    const node = discoveredNodes.find(n => n.node_id === nodeId);
+    
+    if (!node) {
+        showAlert('error', 'Node not found');
+        return;
+    }
+    
+    document.getElementById('nodeDetailsTitle').innerHTML = `
+        <i class="fas fa-server me-2"></i>${node.node_name}
+    `;
+    
+    const content = document.getElementById('nodeDetailsContent');
+    content.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Basic Information</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Node ID:</strong></td><td>${node.node_id}</td></tr>
+                    <tr><td><strong>Name:</strong></td><td>${node.node_name}</td></tr>
+                    <tr><td><strong>IP Address:</strong></td><td>${node.ip_address}</td></tr>
+                    <tr><td><strong>Port:</strong></td><td>${node.port}</td></tr>
+                    <tr><td><strong>Status:</strong></td><td><span class="badge bg-${node.status === 'online' ? 'success' : 'danger'}">${node.status}</span></td></tr>
+                    <tr><td><strong>Last Seen:</strong></td><td>${new Date(node.last_seen).toLocaleString()}</td></tr>
+                    <tr><td><strong>Response Time:</strong></td><td>${node.response_time ? Math.round(node.response_time) + 'ms' : 'N/A'}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6>Hardware</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Platform:</strong></td><td>${node.platform}</td></tr>
+                    <tr><td><strong>CPU Cores:</strong></td><td>${node.cpu_count}</td></tr>
+                    <tr><td><strong>Memory:</strong></td><td>${node.memory_gb} GB</td></tr>
+                    <tr><td><strong>GPU Available:</strong></td><td>${node.gpu && node.gpu.available ? 'Yes' : 'No'}</td></tr>
+                </table>
+                
+                <h6>Available Engines</h6>
+                <div>
+                    ${node.available_engines && node.available_engines.length > 0 ? 
+                        node.available_engines.map(engine => `<span class="badge bg-secondary me-1">${engine}</span>`).join('') :
+                        '<span class="text-muted">None</span>'
+                    }
+                </div>
+            </div>
+        </div>
+        
+        ${node.pipeline_info ? `
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6>Pipeline Information</h6>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-primary">${node.pipeline_info.total_pipelines || 0}</h4>
+                            <small class="text-muted">Total Pipelines</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-success">${node.pipeline_info.active_pipelines || 0}</h4>
+                            <small class="text-muted">Active Pipelines</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-info">${node.pipeline_info.avg_fps || 0}</h4>
+                            <small class="text-muted">Avg FPS</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-warning">${Math.round(node.pipeline_info.avg_latency || 0)}ms</h4>
+                            <small class="text-muted">Avg Latency</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        ` : ''}
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('nodeDetailsModal'));
+    modal.show();
+}
+
+function openNode() {
+    if (currentNodeId) {
+        const node = discoveredNodes.find(n => n.node_id === currentNodeId);
+        if (node) {
+            window.open(node.url, '_blank');
+        }
+    }
+}
+
+function openNodeInNewTab(url) {
+    window.open(url, '_blank');
+}
+
+function updateDiscoveryStatus() {
+    // Discovery is always running, so status is always green
+    const status = document.getElementById('discoveryStatus');
+    const statusText = document.getElementById('discoveryStatusText');
+    
+    status.className = 'status-indicator bg-success';
+    statusText.textContent = 'Running';
+}
+
+function autoRefresh() {
+    // Auto-refresh every 10 seconds since discovery is always running
+    loadDiscoveredNodes();
+    setTimeout(autoRefresh, 10000);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadDiscoveredNodes();
+    updateDiscoveryStatus();
+    
+    // Start auto-refresh since discovery is always running
+    setTimeout(autoRefresh, 10000);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,660 @@
+{% extends "base.html" %}
+
+{% block title %}API Documentation - InferNode{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3">
+        <!-- API Navigation -->
+        <div class="card sticky-top">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>API Endpoints
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    <a href="#overview" class="list-group-item list-group-item-action">
+                        <i class="fas fa-info-circle me-2"></i>Overview
+                    </a>
+                    <a href="#node-info" class="list-group-item list-group-item-action">
+                        <i class="fas fa-server me-2"></i>Node Information
+                    </a>
+                    <a href="#models" class="list-group-item list-group-item-action">
+                        <i class="fas fa-database me-2"></i>Model Management
+                    </a>
+                    <a href="#pipelines" class="list-group-item list-group-item-action">
+                        <i class="fas fa-project-diagram me-2"></i>Pipeline Builder
+                    </a>
+                    <a href="#publisher" class="list-group-item list-group-item-action">
+                        <i class="fas fa-paper-plane me-2"></i>Result Publisher
+                    </a>
+                    <a href="#telemetry" class="list-group-item list-group-item-action">
+                        <i class="fas fa-chart-line me-2"></i>Telemetry
+                    </a>
+                    <a href="#discovery" class="list-group-item list-group-item-action">
+                        <i class="fas fa-search me-2"></i>Discovery
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-9">
+        <!-- Overview -->
+        <section id="overview" class="mb-5">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>API Overview
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p>The InferNode REST API provides programmatic access to all inference capabilities and system management functions.</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Base URL</h6>
+                            <code id="baseUrl">http://localhost:5000</code>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Content Type</h6>
+                            <code>application/json</code>
+                        </div>
+                    </div>
+                    
+                    <h6 class="mt-4">Response Format</h6>
+                    <p>All API endpoints return JSON responses with the following structure:</p>
+                    <pre><code>{
+  "success": true,
+  "data": { ... },
+  "error": null,
+  "timestamp": "2025-07-28T10:30:00Z"
+}</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Node Information -->
+        <section id="node-info" class="mb-5">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-server me-2"></i>Node Information
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-primary">GET</span> /api/node/info</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="testEndpoint('/api/node/info', 'GET')">
+                                <i class="fas fa-play me-1"></i>Test
+                            </button>
+                        </div>
+                        <p>Get comprehensive node information including hardware specs, capabilities, and status.</p>
+                        <h6>Response Example:</h6>
+                        <pre><code>{
+  "node_id": "infernode-001",
+  "version": "1.0.0",
+  "hardware": {
+    "cpu_cores": 8,
+    "memory_gb": 16,
+    "gpu_available": true,
+    "gpu_name": "NVIDIA RTX 3080"
+  },
+  "capabilities": ["yolo", "pytorch", "custom"],
+  "uptime": 3600,
+  "status": "ready"
+}</code></pre>
+                    </div>
+
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-warning">POST</span> /api/node/config</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="showConfigForm()">
+                                <i class="fas fa-cog me-1"></i>Configure
+                            </button>
+                        </div>
+                        <p>Update node configuration settings.</p>
+                        <h6>Request Body:</h6>
+                        <pre><code>{
+  "node_name": "Production Inference Node",
+  "log_level": "INFO",
+  "max_concurrent_inferences": 4
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Model Management -->
+        <section id="models" class="mb-5">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-database me-2"></i>Model Management
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-primary">GET</span> /api/models</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="testEndpoint('/api/models', 'GET')">
+                                <i class="fas fa-play me-1"></i>Test
+                            </button>
+                        </div>
+                        <p>List all uploaded models and storage statistics.</p>
+                        <h6>Response Example:</h6>
+                        <pre><code>{
+  "models": {
+    "model_abc123": {
+      "original_filename": "yolov8n.pt",
+      "engine_type": "ultralytics",
+      "file_size": 12345678,
+      "upload_date": "2025-07-28T10:30:00Z",
+      "description": "YOLOv8 nano model"
+    }
+  },
+  "stats": {
+    "total_models": 5,
+    "total_size_mb": 150.5
+  }
+}</code></pre>
+                    </div>
+
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-warning">POST</span> /api/models/upload</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="showUploadModelForm()">
+                                <i class="fas fa-upload me-1"></i>Upload Model
+                            </button>
+                        </div>
+                        <p>Upload a new model file to the repository.</p>
+                        <h6>Request Body (multipart/form-data):</h6>
+                        <pre><code>file: [model file]
+engine_type: "ultralytics"
+description: "Optional model description"</code></pre>
+                        <h6>Response Example:</h6>
+                        <pre><code>{
+  "model_id": "model_abc123",
+  "status": "uploaded",
+  "message": "Model uploaded successfully"
+}</code></pre>
+                    </div>
+
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-primary">GET</span> /api/models/{model_id}</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="testEndpoint('/api/models/model_abc123', 'GET')">
+                                <i class="fas fa-info me-1"></i>Get Info
+                            </button>
+                        </div>
+                        <p>Get detailed information about a specific model.</p>
+                    </div>
+
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-danger">DELETE</span> /api/models/{model_id}</h6>
+                            <button class="btn btn-sm btn-outline-danger" onclick="testEndpoint('/api/models/model_abc123', 'DELETE')">
+                                <i class="fas fa-trash me-1"></i>Delete
+                            </button>
+                        </div>
+                        <p>Delete a model from the repository.</p>
+                        <h6>Response Example:</h6>
+                        <pre><code>{
+  "status": "deleted",
+  "model_id": "model_abc123",
+  "message": "Model deleted successfully"
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Inference -->
+        <!-- Pipeline Builder -->
+        <section id="pipelines" class="mb-5">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-project-diagram me-2"></i>Pipeline Builder
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-primary">GET</span> /api/pipelines</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="testEndpoint('/api/pipelines', 'GET')">
+                                <i class="fas fa-play me-1"></i>Test
+                            </button>
+                        </div>
+                        <p>List all configured pipelines and their status.</p>
+                        <h6>Response Example:</h6>
+                        <pre><code>{
+  "pipelines": {
+    "pipeline_001": {
+      "name": "Webcam Detection",
+      "frame_source": "webcam",
+      "model_id": "model_abc123",
+      "status": "running"
+    }
+  }
+}</code></pre>
+                    </div>
+
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-warning">POST</span> /api/pipelines</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="showCreatePipelineForm()">
+                                <i class="fas fa-plus me-1"></i>Create Pipeline
+                            </button>
+                        </div>
+                        <p>Create a new inference pipeline.</p>
+                        <h6>Request Body:</h6>
+                        <pre><code>{
+  "name": "Webcam Detection",
+  "frame_source": {
+    "type": "webcam",
+    "device_id": 0
+  },
+  "model_id": "model_abc123",
+  "destinations": [
+    {
+      "type": "mqtt",
+      "config": {
+        "broker": "localhost:1883",
+        "topic": "detections"
+      }
+    }
+  ]
+}</code></pre>
+                    </div>
+
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-success">POST</span> /api/pipelines/{pipeline_id}/start</h6>
+                            <button class="btn btn-sm btn-outline-success" onclick="testEndpoint('/api/pipelines/pipeline_001/start', 'POST')">
+                                <i class="fas fa-play me-1"></i>Start
+                            </button>
+                        </div>
+                        <p>Start a configured pipeline.</p>
+                    </div>
+
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-danger">POST</span> /api/pipelines/{pipeline_id}/stop</h6>
+                            <button class="btn btn-sm btn-outline-danger" onclick="testEndpoint('/api/pipelines/pipeline_001/stop', 'POST')">
+                                <i class="fas fa-stop me-1"></i>Stop
+                            </button>
+                        </div>
+                        <p>Stop a running pipeline.</p>
+                    </div>
+
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-danger">DELETE</span> /api/pipelines/{pipeline_id}</h6>
+                            <button class="btn btn-sm btn-outline-danger" onclick="testEndpoint('/api/pipelines/pipeline_001', 'DELETE')">
+                                <i class="fas fa-trash me-1"></i>Delete
+                            </button>
+                        </div>
+                        <p>Delete a pipeline configuration.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Result Publisher -->
+        <section id="publisher" class="mb-5">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-paper-plane me-2"></i>Result Publisher
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-warning">POST</span> /api/publisher/configure</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="showPublisherForm()">
+                                <i class="fas fa-cog me-1"></i>Configure
+                            </button>
+                        </div>
+                        <p>Add a new result publishing destination.</p>
+                        <h6>Request Body Examples:</h6>
+                        <div class="accordion" id="publisherExamples">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#mqtt-example">
+                                        MQTT Configuration
+                                    </button>
+                                </h2>
+                                <div id="mqtt-example" class="accordion-collapse collapse">
+                                    <div class="accordion-body">
+                                        <pre><code>{
+  "type": "mqtt",
+  "config": {
+    "server": "localhost",
+    "port": 1883,
+    "topic": "infernode/results",
+    "username": "optional",
+    "password": "optional",
+    "rate_limit": 1.0
+  }
+}</code></pre>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#webhook-example">
+                                        Webhook Configuration
+                                    </button>
+                                </h2>
+                                <div id="webhook-example" class="accordion-collapse collapse">
+                                    <div class="accordion-body">
+                                        <pre><code>{
+  "type": "webhook",
+  "config": {
+    "url": "https://api.example.com/webhook",
+    "timeout": 30,
+    "rate_limit": 0.5
+  }
+}</code></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-primary">GET</span> /api/publisher/status</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="testEndpoint('/api/publisher/status', 'GET')">
+                                <i class="fas fa-info me-1"></i>Get Status
+                            </button>
+                        </div>
+                        <p>Get current publisher configuration and statistics.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Telemetry -->
+        <section id="telemetry" class="mb-5">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Telemetry
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-primary">GET</span> /api/telemetry</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="testEndpoint('/api/telemetry', 'GET')">
+                                <i class="fas fa-chart-line me-1"></i>Get Metrics
+                            </button>
+                        </div>
+                        <p>Get current system metrics and telemetry data.</p>
+                        <h6>Response Example:</h6>
+                        <pre><code>{
+  "metrics": {
+    "cpu": 45.2,
+    "memory": 62.1,
+    "disk": 78.5,
+    "temperature": 56.3
+  },
+  "system": {
+    "uptime": 3600,
+    "node_id": "infernode-001",
+    "platform": "Windows-10"
+  },
+  "network": {
+    "ip_address": "192.168.1.100",
+    "hostname": "inference-node-01"
+  }
+}</code></pre>
+                    </div>
+
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-warning">POST</span> /api/telemetry/configure</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="showTelemetryForm()">
+                                <i class="fas fa-cog me-1"></i>Configure
+                            </button>
+                        </div>
+                        <p>Configure telemetry collection and publishing settings.</p>
+                        <h6>Request Body:</h6>
+                        <pre><code>{
+  "enabled": true,
+  "publish_interval": 30,
+  "mqtt_broker": "localhost:1883",
+  "mqtt_topic": "infernode/telemetry"
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Discovery -->
+        <section id="discovery" class="mb-5">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-search me-2"></i>Network Discovery
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-primary">GET</span> /api/discovery/nodes</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="testEndpoint('/api/discovery/nodes', 'GET')">
+                                <i class="fas fa-search me-1"></i>Discover Nodes
+                            </button>
+                        </div>
+                        <p>Discover other inference nodes on the network.</p>
+                        <h6>Response Example:</h6>
+                        <pre><code>{
+  "nodes": [
+    {
+      "node_id": "infernode-002",
+      "ip_address": "192.168.1.101",
+      "port": 5000,
+      "capabilities": ["yolo", "custom"],
+      "last_seen": "2025-07-28T10:25:00Z"
+    }
+  ],
+  "scan_time_ms": 1500
+}</code></pre>
+                    </div>
+
+                    <div class="endpoint-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6><span class="badge bg-warning">POST</span> /api/discovery/announce</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="testEndpoint('/api/discovery/announce', 'POST')">
+                                <i class="fas fa-bullhorn me-1"></i>Announce
+                            </button>
+                        </div>
+                        <p>Broadcast node presence to the network for discovery by other nodes.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Testing -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-play me-2"></i>API Testing Console
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="testResults" class="border rounded p-3 mb-3 api-test-results">
+                    <div class="text-muted">Test results will appear here...</div>
+                </div>
+                <button class="btn btn-outline-secondary" onclick="clearTestResults()">
+                    <i class="fas fa-trash me-2"></i>Clear Results
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Update base URL
+document.getElementById('baseUrl').textContent = window.location.origin;
+
+// Test endpoint function
+async function testEndpoint(endpoint, method = 'GET', body = null) {
+    const resultsDiv = document.getElementById('testResults');
+    
+    // Add loading indicator
+    const loadingHtml = `
+        <div class="mb-2">
+            <strong>${method} ${endpoint}</strong>
+            <div class="spinner-border spinner-border-sm ms-2" role="status"></div>
+        </div>
+    `;
+    resultsDiv.innerHTML = loadingHtml + resultsDiv.innerHTML;
+    
+    try {
+        const options = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        };
+        
+        if (body) {
+            options.body = JSON.stringify(body);
+        }
+        
+        const response = await fetch(endpoint, options);
+        const data = await response.json();
+        
+        // Format response
+        const timestamp = new Date().toLocaleTimeString();
+        const statusClass = response.ok ? 'text-success' : 'text-danger';
+        const resultHtml = `
+            <div class="border-bottom pb-2 mb-2">
+                <div class="d-flex justify-content-between">
+                    <strong>${method} ${endpoint}</strong>
+                    <small class="text-muted">${timestamp}</small>
+                </div>
+                <div class="${statusClass}">Status: ${response.status} ${response.statusText}</div>
+                <details class="mt-2">
+                    <summary>Response Body</summary>
+                    <pre class="mt-2 p-2 bg-light rounded"><code>${JSON.stringify(data, null, 2)}</code></pre>
+                </details>
+            </div>
+        `;
+        
+        // Replace loading with result
+        resultsDiv.innerHTML = resultHtml + resultsDiv.innerHTML.split('</div>').slice(1).join('</div>');
+        
+    } catch (error) {
+        const timestamp = new Date().toLocaleTimeString();
+        const errorHtml = `
+            <div class="border-bottom pb-2 mb-2">
+                <div class="d-flex justify-content-between">
+                    <strong>${method} ${endpoint}</strong>
+                    <small class="text-muted">${timestamp}</small>
+                </div>
+                <div class="text-danger">Error: ${error.message}</div>
+            </div>
+        `;
+        
+        // Replace loading with error
+        resultsDiv.innerHTML = errorHtml + resultsDiv.innerHTML.split('</div>').slice(1).join('</div>');
+    }
+}
+
+// Clear test results
+function clearTestResults() {
+    document.getElementById('testResults').innerHTML = 
+        '<div class="text-muted">Test results will appear here...</div>';
+}
+
+// Show configuration forms
+function showConfigForm() {
+    const config = {
+        node_name: "Production Inference Node",
+        log_level: "INFO",
+        max_concurrent_inferences: 4
+    };
+    
+    testEndpoint('/api/node/config', 'POST', config);
+}
+
+function showUploadModelForm() {
+    showAlert('info', 'Model upload requires file upload - use the Model Management page for interactive model uploading.');
+}
+
+function showCreatePipelineForm() {
+    showAlert('info', 'Pipeline creation requires configuration - use the Pipeline Builder page for interactive pipeline creation.');
+}
+
+function showPublisherForm() {
+    const config = {
+        type: "mqtt",
+        config: {
+            server: "localhost",
+            port: 1883,
+            topic: "infernode/results"
+        }
+    };
+    
+    testEndpoint('/api/publisher/configure', 'POST', config);
+}
+
+function showTelemetryForm() {
+    const config = {
+        enabled: true,
+        publish_interval: 30,
+        mqtt_broker: "localhost:1883",
+        mqtt_topic: "infernode/telemetry"
+    };
+    
+    testEndpoint('/api/telemetry/configure', 'POST', config);
+}
+
+// Smooth scrolling for navigation
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+// Highlight active section in navigation
+window.addEventListener('scroll', function() {
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.list-group-item[href^="#"]');
+    
+    let current = '';
+    sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        const sectionHeight = section.clientHeight;
+        if (window.pageYOffset >= sectionTop - 100) {
+            current = section.getAttribute('id');
+        }
+    });
+    
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) {
+            link.classList.add('active');
+        }
+    });
+});
+</script>
+{% endblock %}

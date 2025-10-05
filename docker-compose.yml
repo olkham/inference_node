@@ -1,0 +1,58 @@
+services:
+  infernode:
+    build: .
+    container_name: infernode
+    
+    # Network mode options:
+    # - Bridge mode (default, cross-platform compatible - recommended)
+    # - Host mode (Linux only, uncomment below to use)
+    network_mode: host
+        
+    # USB Device Mapping for Webcams and other USB devices
+    # Uncomment the appropriate section based on your needs:
+    
+    # Option 1: Map all video devices (recommended for webcams)
+    # devices:
+    #   - /dev/video0:/dev/video0    # First webcam
+    #   - /dev/video1:/dev/video1    # Second webcam (if available)
+    #   - /dev/video2:/dev/video2    # Third webcam (if available)
+    
+    # Option 2: Map specific USB devices by device path
+    # devices:
+    #   - /dev/bus/usb/001/002:/dev/bus/usb/001/002  # Specific USB device
+    
+    # Option 3: Privileged mode (gives access to ALL devices - use with caution!)
+    # privileged: true
+    
+    # Option 4: Grant specific device access permissions
+    # device_cgroup_rules:
+    #   - 'c 81:* rmw'   # Video devices (video0, video1, etc.)
+    #   - 'c 189:* rmw'  # USB devices
+    
+    volumes:
+      # Mount model repository for persistent model storage
+      - ./InferenceNode/model_repository:/app/InferenceNode/model_repository
+      # Mount logs directory for persistent logging
+      - ./InferenceNode/logs:/app/InferenceNode/logs
+      # Optional: Mount custom configuration
+      - ./InferenceNode/node_settings.json:/app/InferenceNode/node_settings.json:ro
+      
+      # Optional: Mount /dev for device access (alternative to devices mapping)
+      # - /dev:/dev
+    
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NODE_NAME=docker-infernode-host
+      - NODE_PORT=5555
+      # WSL2 Discovery Configuration
+      - DISCOVERY_INTERFACE=eth0
+      - DISCOVERY_BIND_IP=0.0.0.0
+      - DISCOVERY_PORT=8888
+      # Flask Security (optional - will auto-generate if not set)
+      # - FLASK_SECRET_KEY=your-production-secret-key-here
+    
+    restart: unless-stopped
+
+    # ports:
+      # - "${NODE_PORT:-5555}:${NODE_PORT:-5555}"      # Web interface (uses NODE_PORT env var, defaults to 5555)
+      # - "8888:8888/udp"  # Network discovery

@@ -1,0 +1,719 @@
+{% extends "base.html" %}
+
+{% block title %}Model Management - InferNode{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Model Upload -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-upload me-2"></i>Upload Model
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="modelType" class="form-label">Model Type</label>
+                            <select class="form-select" id="modelType" required>
+                                <option value="">Select Model Type</option>
+                                <option value="ultralytics">Ultralytics YOLO</option>
+                                <option value="geti">Geti</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="modelFile" class="form-label">Model File</label>
+                            <input type="file" class="form-control" id="modelFile" required>
+                            <div class="form-text">Supported formats: .pt (Ultralytics), .zip (Geti deployment package)</div>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label for="modelName" class="form-label">Model Name</label>
+                            <input type="text" class="form-control" id="modelName" placeholder="Enter a display name for this model (optional)">
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Friendly name to display in the pipeline builder. If not provided, the filename will be used.
+                            </div>
+                        </div>
+                        
+                        <!-- Ultralytics Model Selection (hidden by default) -->
+                        <div class="col-12" id="ultralyticsSection" style="display: none;">
+                            <div class="card border-primary">
+                                <div class="card-body bg-primary bg-opacity-10">
+                                    <h6 class="card-title text-primary">
+                                        <i class="fas fa-download me-2"></i>Or Download from Ultralytics
+                                    </h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-8">
+                                            <label for="ultralyticsModel" class="form-label">Pre-trained Model</label>
+                                            <select class="form-select" id="ultralyticsModel">
+                                                <option value="">Select a pre-trained model</option>
+                                                <optgroup label="YOLOv8 - Object Detection">
+                                                    <option value="yolov8n.pt">YOLOv8n (Nano) - Fastest</option>
+                                                    <option value="yolov8s.pt">YOLOv8s (Small)</option>
+                                                    <option value="yolov8m.pt">YOLOv8m (Medium)</option>
+                                                    <option value="yolov8l.pt">YOLOv8l (Large)</option>
+                                                    <option value="yolov8x.pt">YOLOv8x (Extra Large) - Most Accurate</option>
+                                                </optgroup>
+                                                <optgroup label="YOLOv8 - Segmentation">
+                                                    <option value="yolov8n-seg.pt">YOLOv8n-seg (Nano)</option>
+                                                    <option value="yolov8s-seg.pt">YOLOv8s-seg (Small)</option>
+                                                    <option value="yolov8m-seg.pt">YOLOv8m-seg (Medium)</option>
+                                                    <option value="yolov8l-seg.pt">YOLOv8l-seg (Large)</option>
+                                                    <option value="yolov8x-seg.pt">YOLOv8x-seg (Extra Large)</option>
+                                                </optgroup>
+                                                <optgroup label="YOLOv8 - Pose Detection">
+                                                    <option value="yolov8n-pose.pt">YOLOv8n-pose (Nano)</option>
+                                                    <option value="yolov8s-pose.pt">YOLOv8s-pose (Small)</option>
+                                                    <option value="yolov8m-pose.pt">YOLOv8m-pose (Medium)</option>
+                                                    <option value="yolov8l-pose.pt">YOLOv8l-pose (Large)</option>
+                                                    <option value="yolov8x-pose.pt">YOLOv8x-pose (Extra Large)</option>
+                                                    <option value="yolov8x-pose-p6.pt">YOLOv8x-pose-p6 (P6)</option>
+                                                </optgroup>
+                                                <optgroup label="YOLOv8 - Oriented Bounding Boxes">
+                                                    <option value="yolov8n-obb.pt">YOLOv8n-obb (Nano)</option>
+                                                    <option value="yolov8s-obb.pt">YOLOv8s-obb (Small)</option>
+                                                    <option value="yolov8m-obb.pt">YOLOv8m-obb (Medium)</option>
+                                                    <option value="yolov8l-obb.pt">YOLOv8l-obb (Large)</option>
+                                                    <option value="yolov8x-obb.pt">YOLOv8x-obb (Extra Large)</option>
+                                                </optgroup>
+                                                <optgroup label="YOLOv8 - Classification">
+                                                    <option value="yolov8n-cls.pt">YOLOv8n-cls (Nano)</option>
+                                                    <option value="yolov8s-cls.pt">YOLOv8s-cls (Small)</option>
+                                                    <option value="yolov8m-cls.pt">YOLOv8m-cls (Medium)</option>
+                                                    <option value="yolov8l-cls.pt">YOLOv8l-cls (Large)</option>
+                                                    <option value="yolov8x-cls.pt">YOLOv8x-cls (Extra Large)</option>
+                                                </optgroup>
+                                                <optgroup label="YOLO11 - Object Detection">
+                                                    <option value="yolo11n.pt">YOLO11n (Nano) - Fastest</option>
+                                                    <option value="yolo11s.pt">YOLO11s (Small)</option>
+                                                    <option value="yolo11m.pt">YOLO11m (Medium)</option>
+                                                    <option value="yolo11l.pt">YOLO11l (Large)</option>
+                                                    <option value="yolo11x.pt">YOLO11x (Extra Large) - Most Accurate</option>
+                                                </optgroup>
+                                                <optgroup label="YOLO11 - Segmentation">
+                                                    <option value="yolo11n-seg.pt">YOLO11n-seg (Nano)</option>
+                                                    <option value="yolo11s-seg.pt">YOLO11s-seg (Small)</option>
+                                                    <option value="yolo11m-seg.pt">YOLO11m-seg (Medium)</option>
+                                                    <option value="yolo11l-seg.pt">YOLO11l-seg (Large)</option>
+                                                    <option value="yolo11x-seg.pt">YOLO11x-seg (Extra Large)</option>
+                                                </optgroup>
+                                                <optgroup label="YOLO11 - Pose Detection">
+                                                    <option value="yolo11n-pose.pt">YOLO11n-pose (Nano)</option>
+                                                    <option value="yolo11s-pose.pt">YOLO11s-pose (Small)</option>
+                                                    <option value="yolo11m-pose.pt">YOLO11m-pose (Medium)</option>
+                                                    <option value="yolo11l-pose.pt">YOLO11l-pose (Large)</option>
+                                                    <option value="yolo11x-pose.pt">YOLO11x-pose (Extra Large)</option>
+                                                </optgroup>
+                                                <optgroup label="YOLO11 - Oriented Bounding Boxes">
+                                                    <option value="yolo11n-obb.pt">YOLO11n-obb (Nano)</option>
+                                                    <option value="yolo11s-obb.pt">YOLO11s-obb (Small)</option>
+                                                    <option value="yolo11m-obb.pt">YOLO11m-obb (Medium)</option>
+                                                    <option value="yolo11l-obb.pt">YOLO11l-obb (Large)</option>
+                                                    <option value="yolo11x-obb.pt">YOLO11x-obb (Extra Large)</option>
+                                                </optgroup>
+                                                <optgroup label="YOLO11 - Classification">
+                                                    <option value="yolo11n-cls.pt">YOLO11n-cls (Nano)</option>
+                                                    <option value="yolo11s-cls.pt">YOLO11s-cls (Small)</option>
+                                                    <option value="yolo11m-cls.pt">YOLO11m-cls (Medium)</option>
+                                                    <option value="yolo11l-cls.pt">YOLO11l-cls (Large)</option>
+                                                    <option value="yolo11x-cls.pt">YOLO11x-cls (Extra Large)</option>
+                                                </optgroup>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">&nbsp;</label>
+                                            <button type="button" class="btn btn-success d-block" id="downloadUltralyticsBtn" onclick="downloadUltralyticsModel()">
+                                                <i class="fas fa-download me-2"></i>Download from Ultralytics
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="form-text">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Models will be automatically downloaded and uploaded to your InferNode
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label for="description" class="form-label">Description (Optional)</label>
+                            <textarea class="form-control" id="description" rows="2" placeholder="Enter a description for this model..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary" id="uploadSubmitBtn">
+                                <i class="fas fa-upload me-2"></i><span id="uploadBtnText">Upload Model</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <div id="uploadProgress" class="mt-3 upload-progress" style="display: none;">
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div id="downloadProgress" class="mt-3 download-progress" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Downloading from Ultralytics...</span>
+                        <span id="downloadStatus" class="badge bg-info">Preparing</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted mt-1" id="downloadDetails">Initializing download...</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model List -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>Uploaded Models
+                </h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary me-2" onclick="refreshModels()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleView()">
+                        <i class="fas fa-th-large" id="viewToggleIcon"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="modelsList">
+                    <div class="text-muted">
+                        <i class="fas fa-spinner fa-spin me-2"></i>Loading models...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Storage Statistics -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Storage Statistics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="storageStats">
+                    <div class="text-muted">
+                        <i class="fas fa-spinner fa-spin me-2"></i>Loading storage info...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Information -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Model Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="modelInfo">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ultralytics-info">
+                                Ultralytics YOLO
+                            </button>
+                        </h2>
+                        <div id="ultralytics-info" class="accordion-collapse collapse" data-bs-parent="#modelInfo">
+                            <div class="accordion-body">
+                                <small>
+                                    YOLO (You Only Look Once) models for object detection and classification. 
+                                    Supports YOLOv8, YOLOv11 and other Ultralytics models.
+                                    <br><br>
+                                    <strong>Supported formats:</strong> .pt, .yaml
+                                    <br><strong>How to upload:</strong> Select "Ultralytics" as model type and upload a .pt file, or download a pre-trained model directly from Ultralytics.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#geti-info">
+                                Geti
+                            </button>
+                        </h2>
+                        <div id="geti-info" class="accordion-collapse collapse" data-bs-parent="#modelInfo">
+                            <div class="accordion-body">
+                                <small>
+                                    Geti™ platform models optimized for Intel hardware using OpenVINO™ toolkit.
+                                    Supports object detection, classification, segmentation, and anomaly detection.
+                                    <br><br>
+                                    <strong>Supported formats:</strong> .zip (Model deployment package)
+                                    <br><strong>How to upload:</strong> 
+                                    <ol class="mb-0 ps-3">
+                                        <li>Export your trained model from Geti platform</li>
+                                        <li>Download the deployment package (.zip file)</li>
+                                        <li>Select "Geti" as model type</li>
+                                        <li>Upload the .zip file (do not extract it)</li>
+                                    </ol>
+                                    <br>
+                                    <strong>Note:</strong> The deployment package should contain the OpenVINO model files and configuration.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+                                    Supports YOLOv8 object detection models. Upload .pt files trained with Ultralytics framework.
+                                    <br><strong>Formats:</strong> .pt
+                                    <br><strong>Use case:</strong> Object detection, segmentation
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#torch-info">
+                                PyTorch
+                            </button>
+                        </h2>
+                        <div id="torch-info" class="accordion-collapse collapse" data-bs-parent="#engineInfo">
+                            <div class="accordion-body">
+                                <small>
+                                    Generic PyTorch model support. Works with standard PyTorch saved models.
+                                    <br><strong>Formats:</strong> .pt, .pth
+                                    <br><strong>Use case:</strong> Classification, custom models
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#geti-info">
+                                Geti
+                            </button>
+                        </h2>
+                        <div id="geti-info" class="accordion-collapse collapse" data-bs-parent="#engineInfo">
+                            <div class="accordion-body">
+                                <small>
+                                    Intel's computer vision platform models. Optimized for Intel hardware.
+                                    <br><strong>Formats:</strong> Various
+                                    <br><strong>Use case:</strong> Industrial computer vision
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#custom-info">
+                                Custom
+                            </button>
+                        </h2>
+                        <div id="custom-info" class="accordion-collapse collapse" data-bs-parent="#engineInfo">
+                            <div class="accordion-body">
+                                <small>
+                                    Custom engine for user-defined models. Requires implementation of custom preprocessing/postprocessing.
+                                    <br><strong>Formats:</strong> Any
+                                    <br><strong>Use case:</strong> Custom implementations
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+let currentView = 'list'; // 'list' or 'grid'
+
+// Handle model type selection
+document.getElementById('modelType').addEventListener('change', function() {
+    const ultralyticsSection = document.getElementById('ultralyticsSection');
+    const modelFileInput = document.getElementById('modelFile');
+    const uploadBtnText = document.getElementById('uploadBtnText');
+    
+    if (this.value === 'ultralytics') {
+        ultralyticsSection.style.display = 'block';
+        modelFileInput.required = false;
+    } else {
+        ultralyticsSection.style.display = 'none';
+        modelFileInput.required = true;
+        // Clear ultralytics selection
+        document.getElementById('ultralyticsModel').value = '';
+    }
+});
+
+
+// Alert function now handled by centralized notification system in app.js
+
+// Upload form handler
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const modelType = document.getElementById('modelType').value;
+    const modelFile = document.getElementById('modelFile').files[0];
+    const ultralyticsModel = document.getElementById('ultralyticsModel').value;
+    
+    // Check if we have either a file upload or ultralytics model selected
+    if (!modelFile && !ultralyticsModel) {
+        showAlert('warning', 'Please select a file to upload or choose an Ultralytics model to download');
+        return;
+    }
+    
+    // If ultralytics model is selected but no file, use download function instead
+    if (modelType === 'ultralytics' && ultralyticsModel && !modelFile) {
+        downloadUltralyticsModel();
+        return;
+    }
+    
+    // Regular file upload
+    const formData = new FormData();
+    formData.append('file', modelFile);
+    formData.append('engine_type', modelType);
+    formData.append('description', document.getElementById('description').value);
+    formData.append('name', document.getElementById('modelName').value);
+    
+    const progressBar = document.querySelector('#uploadProgress .progress-bar');
+    const progressDiv = document.getElementById('uploadProgress');
+    
+    progressDiv.style.display = 'block';
+    progressBar.style.width = '0%';
+    
+    try {
+        const response = await fetch('/api/models/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showAlert('success', `Model uploaded successfully! Model ID: ${result.model_id}`);
+            refreshModels();
+            document.getElementById('uploadForm').reset();
+        } else {
+            showAlert('error', `Upload failed: ${result.error}`);
+        }
+    } catch (error) {
+        showAlert('error', `Upload failed: ${error.message}`);
+    } finally {
+        progressDiv.style.display = 'none';
+    }
+});
+
+// Download Ultralytics model
+async function downloadUltralyticsModel() {
+    const modelName = document.getElementById('ultralyticsModel').value;
+    const description = document.getElementById('description').value;
+    const name = document.getElementById('modelName').value;
+    
+    if (!modelName) {
+        showAlert('warning', 'Please select a model to download');
+        return;
+    }
+    
+    const downloadBtn = document.getElementById('downloadUltralyticsBtn');
+    const progressDiv = document.getElementById('downloadProgress');
+    const progressBar = progressDiv.querySelector('.progress-bar');
+    const statusBadge = document.getElementById('downloadStatus');
+    const detailsSpan = document.getElementById('downloadDetails');
+    
+    // Disable button and show progress
+    downloadBtn.disabled = true;
+    downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Downloading...';
+    progressDiv.style.display = 'block';
+    progressBar.style.width = '10%';
+    statusBadge.textContent = 'Downloading';
+    statusBadge.className = 'badge bg-primary';
+    detailsSpan.textContent = `Downloading ${modelName} from Ultralytics...`;
+    
+    try {
+        const response = await fetch('/api/models/download-ultralytics', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model_name: modelName,
+                description: description || `Pre-trained ${modelName} model from Ultralytics`,
+                name: name
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Simulate progress updates
+            progressBar.style.width = '50%';
+            detailsSpan.textContent = 'Processing downloaded model...';
+            
+            // Wait a bit for visual feedback
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            progressBar.style.width = '100%';
+            statusBadge.textContent = 'Complete';
+            statusBadge.className = 'badge bg-success';
+            detailsSpan.textContent = `${modelName} successfully downloaded and uploaded!`;
+            
+            showAlert('success', `Model ${modelName} downloaded and uploaded successfully! Model ID: ${result.model_id}`);
+            refreshModels();
+            
+            // Reset form
+            document.getElementById('ultralyticsModel').value = '';
+            document.getElementById('description').value = '';
+            document.getElementById('modelName').value = '';
+            
+        } else {
+            throw new Error(result.error || 'Download failed');
+        }
+    } catch (error) {
+        progressBar.style.width = '100%';
+        progressBar.className = 'progress-bar bg-danger';
+        statusBadge.textContent = 'Failed';
+        statusBadge.className = 'badge bg-danger';
+        detailsSpan.textContent = `Download failed: ${error.message}`;
+        
+        showAlert('error', `Download failed: ${error.message}`);
+    } finally {
+        // Re-enable button
+        downloadBtn.disabled = false;
+        downloadBtn.innerHTML = '<i class="fas fa-download me-2"></i>Download from Ultralytics';
+        
+        // Hide progress after a delay
+        setTimeout(() => {
+            progressDiv.style.display = 'none';
+            progressBar.style.width = '0%';
+            progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated';
+        }, 3000);
+    }
+}
+
+// Refresh models list
+async function refreshModels() {
+    const modelsList = document.getElementById('modelsList');
+    modelsList.innerHTML = `
+        <div class="text-muted">
+            <i class="fas fa-spinner fa-spin me-2"></i>Loading models...
+        </div>
+    `;
+    
+    try {
+        const response = await fetch('/api/models');
+        const data = await response.json();
+        
+        if (response.ok) {
+            const models = data.models;
+            const stats = data.stats;
+            
+            // Update storage stats
+            updateStorageStats(stats);
+            
+            if (Object.keys(models).length === 0) {
+                modelsList.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-database fa-3x mb-3"></i>
+                        <h5>No models uploaded yet</h5>
+                        <p>Upload your first model using the form above.</p>
+                    </div>
+                `;
+            } else {
+                displayModels(models);
+            }
+        } else {
+            modelsList.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Failed to load models: ${data.error}
+                </div>
+            `;
+        }
+    } catch (error) {
+        modelsList.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Error loading models: ${error.message}
+            </div>
+        `;
+    }
+}
+
+// Display models in current view mode
+function displayModels(models) {
+    const modelsList = document.getElementById('modelsList');
+    
+    if (currentView === 'grid') {
+        displayModelsGrid(models);
+    } else {
+        displayModelsList(models);
+    }
+}
+
+// Display models in list view
+function displayModelsList(models) {
+    const modelsList = document.getElementById('modelsList');
+    let modelsHtml = '';
+    
+    for (const [modelId, metadata] of Object.entries(models)) {
+        const uploadDate = new Date(metadata.upload_date).toLocaleDateString();
+        const fileSizeMB = (metadata.file_size / (1024 * 1024)).toFixed(2);
+        
+        modelsHtml += `
+            <div class="card mb-2">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="card-title mb-1">${metadata.name || metadata.original_filename}</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <strong>ID:</strong> ${modelId}<br>
+                                        <strong>Type:</strong> ${metadata.model_type || metadata.engine_type}<br>
+                                        <strong>Size:</strong> ${fileSizeMB} MB
+                                        ${metadata.name && metadata.name !== metadata.original_filename ? `<br><strong>File:</strong> ${metadata.original_filename}` : ''}
+                                    </small>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <strong>Uploaded:</strong> ${uploadDate}<br>
+                                        ${metadata.description ? `<strong>Description:</strong> ${metadata.description}` : ''}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ms-3">
+                            <button class="btn btn-outline-danger btn-sm" 
+                                    onclick="deleteModel('${modelId}')" 
+                                    title="Delete model">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    modelsList.innerHTML = modelsHtml;
+}
+
+// Display models in grid view
+function displayModelsGrid(models) {
+    const modelsList = document.getElementById('modelsList');
+    let modelsHtml = '<div class="row g-3">';
+    
+    for (const [modelId, metadata] of Object.entries(models)) {
+        const uploadDate = new Date(metadata.upload_date).toLocaleDateString();
+        const fileSizeMB = (metadata.file_size / (1024 * 1024)).toFixed(2);
+        
+        modelsHtml += `
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="card-title">${metadata.name || metadata.original_filename}</h6>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                <strong>Type:</strong> ${metadata.model_type || metadata.engine_type}<br>
+                                <strong>Size:</strong> ${fileSizeMB} MB<br>
+                                <strong>Uploaded:</strong> ${uploadDate}
+                                ${metadata.name && metadata.name !== metadata.original_filename ? `<br><strong>File:</strong> ${metadata.original_filename}` : ''}
+                                ${metadata.description ? `<br><strong>Description:</strong> ${metadata.description}` : ''}
+                            </small>
+                        </p>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-outline-danger btn-sm w-100" 
+                                onclick="deleteModel('${modelId}')">
+                            <i class="fas fa-trash me-1"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    modelsHtml += '</div>';
+    modelsList.innerHTML = modelsHtml;
+}
+
+// Toggle between list and grid view
+function toggleView() {
+    currentView = currentView === 'list' ? 'grid' : 'list';
+    const icon = document.getElementById('viewToggleIcon');
+    icon.className = currentView === 'list' ? 'fas fa-th-large' : 'fas fa-list';
+    
+    // Re-fetch and display models in new view
+    refreshModels();
+}
+
+// Update storage statistics
+function updateStorageStats(stats) {
+    const storageStatsDiv = document.getElementById('storageStats');
+    
+    storageStatsDiv.innerHTML = `
+        <div class="row g-3">
+            <div class="col-6">
+                <div class="text-center">
+                    <h4 class="text-primary mb-1">${stats.total_models}</h4>
+                    <small class="text-muted">Total Models</small>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="text-center">
+                    <h4 class="text-info mb-1">${stats.total_size_mb} MB</h4>
+                    <small class="text-muted">Storage Used</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <div class="d-flex justify-content-between mb-1">
+                <small>Storage Usage</small>
+                <small>${stats.total_size_mb} MB</small>
+            </div>
+            <div class="progress progress-small">
+                <div class="progress-bar" role="progressbar" style="width: ${Math.min((stats.total_size_mb / 1000) * 100, 100)}%"></div>
+            </div>
+        </div>
+    `;
+}
+
+// Delete a model
+async function deleteModel(modelId) {
+    if (confirm(`Are you sure you want to delete this model? This action cannot be undone.`)) {
+        try {
+            const response = await fetch(`/api/models/${modelId}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                showAlert('success', `Model deleted successfully`);
+                refreshModels();
+            } else {
+                showAlert('error', `Failed to delete model: ${result.error}`);
+            }
+        } catch (error) {
+            showAlert('error', `Failed to delete model: ${error.message}`);
+        }
+    }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    refreshModels();
+});
+</script>
+{% endblock %}

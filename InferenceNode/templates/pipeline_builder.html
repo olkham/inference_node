@@ -1,0 +1,4028 @@
+{% extends "base.html" %}
+
+{% block title %}Pipeline Builder - InferNode{% endblock %}
+
+{% block head %}
+<style>
+.button-selector-item {
+    max-width: 225px;
+}
+
+/* Subtle styling for filter inputs */
+.filter-input-container {
+    position: relative;
+    display: inline-block;
+    max-width: 200px;
+}
+
+.filter-input {
+    border: 1px solid #495057;
+    background-color: #343a40;
+    color: #ffffff;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+    padding-right: 30px; /* Make room for the clear button */
+}
+
+.filter-input::placeholder {
+    color: #adb5bd;
+}
+
+.filter-input:focus {
+    border-color: #6c757d;
+    background-color: #495057;
+    color: #ffffff;
+    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.1);
+}
+
+.filter-clear-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #adb5bd;
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 0;
+    width: 16px;
+    height: 16px;
+    display: none; /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.filter-clear-btn:hover {
+    background-color: #495057;
+    color: #ffffff;
+}
+
+.filter-clear-btn.show {
+    display: flex;
+}
+
+/* Quick search badges */
+.quick-search-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-left: 8px;
+}
+
+.quick-search-badge {
+    background-color: #495057;
+    color: #adb5bd;
+    border: 1px solid #6c757d;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.quick-search-badge:hover {
+    background-color: #6c757d;
+    color: #ffffff;
+    border-color: #adb5bd;
+}
+
+.quick-search-badge.active {
+    background-color: #0d6efd;
+    color: #ffffff;
+    border-color: #0d6efd;
+}
+
+.filter-container {
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.filter-container:hover {
+    opacity: 1;
+}
+
+/* Hide filter inputs when not needed */
+.button-selector:has(.button-selector-item:only-child) + .filter-container {
+    display: none;
+}
+
+/* Force left alignment for single buttons - Override the :only-child centering */
+.button-selector-item.single-item,
+.button-selector .button-selector-item:only-child.single-item {
+    flex: 0 0 225px !important;
+    width: 225px !important;
+    max-width: 225px !important;
+    margin: 0 !important;
+    margin-right: auto !important;
+}
+
+/* Force left alignment for containers with only single items */
+.button-selector.single-item-container {
+    justify-content: flex-start !important;
+}
+
+/* Destination Toggle Switch Styles - Apple Style */
+.destination-toggle {
+    position: relative;
+    width: 44px;
+    height: 22px;
+    margin: 0;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.destination-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.destination-slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 44px;
+    height: 22px;
+    border-radius: 22px;
+    background: linear-gradient(to bottom, #b3b3b3, #e6e6e6);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.destination-slider:after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.destination-toggle input:checked + .destination-slider {
+    background: linear-gradient(to bottom, #198754, #146c43);
+}
+
+.destination-toggle input:checked + .destination-slider:after {
+    transform: translateX(22px);
+}
+
+.destination-slider:hover {
+    background: linear-gradient(to bottom, #a0a0a0, #d0d0d0);
+}
+
+.destination-toggle input:checked + .destination-slider:hover {
+    background: linear-gradient(to bottom, #157347, #0d5132);
+}
+
+.destination-slider:hover:after {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.destination-toggle input:disabled + .destination-slider {
+    background: linear-gradient(to bottom, #6c757d, #868e96);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Disabled destination type styling */
+.button-selector-item.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.button-selector-item.disabled:hover {
+    background-color: transparent;
+    transform: none;
+}
+
+.button-selector-item.disabled .icon,
+.button-selector-item.disabled .label,
+.button-selector-item.disabled .description {
+    color: #6c757d;
+}
+
+/* Frame source loading spinner */
+#frameSourceLoading {
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#frameSourceLoading .spinner-border {
+    margin-bottom: 10px;
+}
+
+/* Secondary frame sources styling */
+.button-selector-item.secondary-source {
+    opacity: 0.85;
+    border-style: dashed !important;
+}
+
+.button-selector-item.secondary-source:hover {
+    opacity: 1;
+}
+
+/* Discover devices button styling */
+#discoverDevicesBtn {
+    transition: all 0.2s ease;
+    min-width: 140px;
+}
+
+#discoverDevicesBtn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+#discoverDevicesBtn .fa-spinner {
+    animation: fa-spin 2s infinite linear;
+}
+
+/* Device dropdown with discovered devices */
+.device-dropdown.discovered {
+    border-color: #198754;
+    background-color: #f8fff9;
+}
+
+.device-dropdown.discovered:focus {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+}
+
+/* Device discovery success message */
+.discovery-success {
+    color: #198754;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.discovery-success .fas {
+    font-size: 0.75rem;
+}
+
+
+
+/* Discover devices section styling */
+#discoverDevicesSection {
+    transition: all 0.3s ease;
+}
+
+/* Device info display box */
+#discoveredDeviceInfo {
+    border: 1px solid #495057;
+    background-color: #343a40;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px; /* Minimum height when content is small */
+    max-height: 600px; /* Maximum height to prevent excessive expansion */
+    height: auto; /* Allow height to adjust */
+}
+
+#discoveredDeviceInfo .card-body {
+    background-color: #212529;
+    color: #ffffff;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0; /* Allow flex item to shrink below content size */
+    max-height: calc(100% - 50px); /* Account for header height */
+}
+
+#discoveredDeviceInfo .card-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+#discoveredDeviceInfo .card-body::-webkit-scrollbar-track {
+    background: #343a40;
+    border-radius: 4px;
+}
+
+#discoveredDeviceInfo .card-body::-webkit-scrollbar-thumb {
+    background: #6c757d;
+    border-radius: 4px;
+}
+
+#discoveredDeviceInfo .card-body::-webkit-scrollbar-thumb:hover {
+    background: #adb5bd;
+}
+
+.device-info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid #495057;
+    font-size: 0.875rem;
+}
+
+.device-info-item:last-child {
+    border-bottom: none;
+}
+
+.device-info-label {
+    font-weight: 500;
+    color: #adb5bd;
+    min-width: 60px;
+}
+
+.device-info-value {
+    color: #ffffff;
+    text-align: right;
+    word-break: break-all;
+}
+
+.device-card {
+    background-color: #2c2f33;
+    border: 1px solid #495057;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+    transition: all 0.2s ease;
+}
+
+.device-card:hover {
+    border-color: #6c757d;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.device-card:last-child {
+    margin-bottom: 0;
+}
+
+.device-card-header {
+    background-color: #495057;
+    color: #ffffff;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #6c757d;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.device-card-body {
+    padding: 0.75rem;
+}
+
+/* Discover button in device info box header */
+#discoveredDeviceInfo .card-header .btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    min-width: 80px;
+}
+
+#discoveredDeviceInfo .card-header .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#discoveredDeviceInfo .card-header .btn .fa-spinner {
+    animation: fa-spin 2s infinite linear;
+}
+
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Pipeline Configuration Form -->
+        <div class="card mb-4">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-project-diagram me-2"></i>Configure Inference Pipeline
+                </h5>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-info btn-sm" id="importPipelineBtn" onclick="importPipeline()">
+                        <i class="fas fa-upload me-1"></i>Import Pipeline
+                    </button>
+                    <div id="topFormActions" class="d-none">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-warning btn-sm" id="topSubmitButton" onclick="document.getElementById('submitButton').click()">
+                                <i class="fas fa-save me-1"></i><span id="topSaveButtonText">Update Pipeline</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" id="topResetButton" onclick="cancelEdit()">
+                                <i class="fas fa-times me-1"></i><span id="topResetButtonText">Cancel Edit</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <form id="pipelineForm">
+                    <!-- Pipeline Basic Info -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="pipelineName" class="form-label">Pipeline Name</label>
+                            <input type="text" class="form-control" id="pipelineName" required 
+                                   placeholder="e.g., Webcam Object Detection">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="pipelineDescription" class="form-label">Description</label>
+                            <input type="text" class="form-control" id="pipelineDescription" 
+                                   placeholder="Brief description of this pipeline">
+                        </div>
+                    </div>
+
+                    <!-- Step 1: Frame Source Configuration -->
+                    <div class="step-section mb-4">
+                        <h6 class="text-primary">
+                            <i class="fas fa-video me-2"></i>Step 1: Frame Source
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Source Type</label>
+                                <div class="d-flex align-items-center mb-2 filter-container">
+                                    <div class="filter-input-container me-2">
+                                        <input type="text" class="form-control form-control-sm filter-input" 
+                                               placeholder="Filter sources..." 
+                                               id="frameSourceFilter"
+                                               onkeyup="handleFilterInput('frameSourceSelector', this)"
+                                               oninput="toggleClearButton(this)">
+                                        <button type="button" class="filter-clear-btn" 
+                                                onclick="clearFilter('frameSourceSelector', 'frameSourceFilter')"
+                                                title="Clear search">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div class="quick-search-badges">
+                                        <!-- Badges will be populated dynamically by JavaScript -->
+                                    </div>
+                                </div>
+                                <div class="button-selector large-group" id="frameSourceSelector">
+                                    <!-- Loading indicator - will be replaced by JavaScript -->
+                                    <div class="text-center p-3" id="frameSourceLoading">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <div class="mt-2 text-muted">Loading available frame sources...</div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="frameSourceType" required>
+                                
+
+                                
+                            </div>
+                            <div class="col-12">
+                                <div class="row g-3 align-items-start">
+                                    <div class="col-md-8">
+                                        <div id="frameSourceConfig">
+                                            <div class="text-muted">Select a source type to configure</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 d-flex">
+                                        <div id="discoveredDeviceInfo" class="card flex-fill" style="display: none;">
+                                            <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0"><i class="fas fa-list me-1"></i>Discovered Devices</h6>
+                                                <button type="button" class="btn btn-outline-light btn-sm" id="discoverDevicesBtn" onclick="discoverDevicesForSelectedSource()">
+                                                    <i class="fas fa-search me-1"></i>Discover
+                                                </button>
+                                            </div>
+                                            <div class="card-body p-3" id="discoveredDeviceInfoContent">
+                                                <div class="text-muted">Click "Discover" to find available devices</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Step 2: Model Selection -->
+                    <div class="step-section mb-4" id="modelSelectionStep">
+                        <h6 class="text-primary">
+                            <i class="fas fa-brain me-2"></i>Step 2: Model Selection
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Available Models</label>
+                                <div class="d-flex align-items-center mb-2 filter-container">
+                                    <div class="filter-input-container me-2">
+                                        <input type="text" class="form-control form-control-sm filter-input" 
+                                               placeholder="Filter models..." 
+                                               id="modelFilter"
+                                               onkeyup="handleFilterInput('modelSelector', this)"
+                                               oninput="toggleClearButton(this)">
+                                        <button type="button" class="filter-clear-btn" 
+                                                onclick="clearFilter('modelSelector', 'modelFilter')"
+                                                title="Clear search">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div class="quick-search-badges">
+                                        <!-- Dynamic badges will be populated by loadAvailableEngineTypes() -->
+                                    </div>
+                                </div>
+                                <div class="button-selector large-group" id="modelSelector">
+                                    <div class="text-muted text-center w-100 p-3">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Loading available models...
+                                    </div>
+                                    <!-- Static Upload Button -->
+                                    <div class="button-selector-item upload-button" onclick="window.location.href = '/models'">
+                                        <div class="icon"><i class="fas fa-plus"></i></div>
+                                        <div class="label">Upload</div>
+                                        <div class="description">Add new models</div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="selectedModel" required>
+                            </div>
+                            <div class="col-12">
+                                <div id="modelInfo" class="mt-2">
+                                    <div class="text-muted">Select a model to see details</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Step 3: Inference Engine Configuration -->
+                    <div class="step-section mb-4">
+                        <h6 class="text-primary">
+                            <i class="fas fa-cogs me-2"></i>Step 3: Inference Engine
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label">Engine Type <span class="text-muted">(Auto-selected based on model)</span></label>
+                                <div class="button-selector" id="inferenceEngineSelector">
+                                    <div class="text-muted text-center w-100 p-3">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Loading available engines...
+                                    </div>
+                                </div>
+                                <input type="hidden" id="inferenceEngine" required>
+                                
+                                <!-- Enable Inference Switch -->
+                                <div class="mt-3" id="enableInferenceSection">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="inferenceEnabled" checked>
+                                        <label class="form-check-label" for="inferenceEnabled">
+                                            Enable Inference
+                                        </label>
+                                        <div class="form-text">
+                                            Uncheck to view live feed without processing
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Device</label>
+                                <div class="d-flex align-items-center mb-2 filter-container">
+                                    <div class="filter-input-container me-2">
+                                        <input type="text" class="form-control form-control-sm filter-input" 
+                                               placeholder="Filter devices..." 
+                                               id="deviceFilter"
+                                               onkeyup="handleFilterInput('deviceSelector', this)"
+                                               oninput="toggleClearButton(this)">
+                                        <button type="button" class="filter-clear-btn" 
+                                                onclick="clearFilter('deviceSelector', 'deviceFilter')"
+                                                title="Clear search">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div class="quick-search-badges">
+                                        <span class="quick-search-badge" onclick="quickSearch('deviceFilter', 'deviceSelector', 'cpu')">cpu</span>
+                                        <span class="quick-search-badge" onclick="quickSearch('deviceFilter', 'deviceSelector', 'gpu')">gpu</span>
+                                        <span class="quick-search-badge" onclick="quickSearch('deviceFilter', 'deviceSelector', 'npu')">npu</span>
+                                        <span class="quick-search-badge" onclick="quickSearch('deviceFilter', 'deviceSelector', 'amd')">amd</span>
+                                        <span class="quick-search-badge" onclick="quickSearch('deviceFilter', 'deviceSelector', 'intel')">intel</span>
+                                        <span class="quick-search-badge" onclick="quickSearch('deviceFilter', 'deviceSelector', 'nvidia')">nvidia</span>
+                                    </div>
+                                </div>
+                                <div class="button-selector" id="deviceSelector">
+                                    <div class="button-selector-item disabled" data-value="">
+                                        <div class="icon"><i class="fas fa-microchip"></i></div>
+                                        <div class="label">Loading devices...</div>
+                                        <div class="description">Please wait</div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="inferenceDevice" required>
+                                <!-- <div class="form-text" id="deviceInfo"></div> -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Step 4: Result Destinations -->
+                    <div class="step-section mb-4">
+                        <h6 class="text-primary">
+                            <i class="fas fa-share-alt me-2"></i>Step 4: Result Destinations
+                        </h6>
+                        
+                        <!-- Favorite Configurations -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="d-flex align-items-center mb-2">
+                                    <label class="form-label mb-0 me-2">Quick Start from Favorites</label>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadPipelineFavorites()" title="Refresh favorites">
+                                        <i class="fas fa-refresh me-1"></i>Refresh Favorites
+                                    </button>
+                                </div>
+                                
+                                <div class="button-selector" id="favoriteConfigSelector">
+                                </div>
+                                <input type="hidden" id="favoriteConfigSelect">
+                                <div class="form-text">Load a saved publisher configuration to quickly set up destinations</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label class="form-label">Destination Type</label>
+                                <div class="d-flex align-items-center mb-2 filter-container">
+                                    <div class="filter-input-container me-2">
+                                        <input type="text" class="form-control form-control-sm filter-input" 
+                                               placeholder="Filter destinations..." 
+                                               id="destinationFilter"
+                                               onkeyup="handleFilterInput('destinationTypeSelector', this)"
+                                               oninput="toggleClearButton(this)">
+                                        <button type="button" class="filter-clear-btn" 
+                                                onclick="clearFilter('destinationTypeSelector', 'destinationFilter')"
+                                                title="Clear search">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div class="quick-search-badges">
+                                        <span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', 'mqtt')">mqtt</span>
+                                        <span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', 'http')">http</span>
+                                        <span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', 'file')">file</span>
+                                        <span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', 'geti')">geti</span>
+                                        <span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', 'roboflow')">roboflow</span>
+                                        <span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', 'serial')">serial</span>
+                                        <span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', 'null')">null</span>
+                                    </div>
+                                </div>
+                                <div class="button-selector large-group" id="destinationTypeSelector">
+                                    <div class="text-muted text-center w-100 p-3">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Loading available destinations...
+                                    </div>
+                                </div>
+                                <input type="hidden" id="destinationType">
+                            </div>
+                            <div class="col-12">
+                                <div id="destinationConfig">
+                                    <div class="text-muted">Select a destination type to configure</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col">
+                                <button type="button" class="btn btn-primary" onclick="addDestination()">
+                                    <i class="fas fa-plus me-1"></i>Add Destination
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="destinationsList" class="mt-3">
+                            <div class="text-muted">No destinations configured</div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" id="submitButton">
+                            <i class="fas fa-save me-2"></i><span id="saveButtonText">Save Pipeline</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="resetButton" onclick="resetForm()">
+                            <i class="fas fa-undo me-2"></i><span id="resetButtonText">Cancel Edit</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Current Pipelines -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>Current Pipelines
+                </h5>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-success" onclick="window.location.href='/pipeline-management'">
+                        <i class="fas fa-external-link-alt me-1"></i>Manage
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="refreshPipelines()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="availablePipelines">
+                    <div class="text-muted">
+                        <i class="fas fa-info-circle me-2"></i>No available pipelines
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Pipeline Templates -->
+    <div id="pipelineTemplatesCard" class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-copy me-2"></i>Pipeline Templates
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="loadTemplate('webcam_detection')">
+                        <i class="fas fa-video me-2"></i>Webcam Object Detection
+                    </button>
+                    <button class="btn btn-primary" onclick="loadTemplate('ip_camera_monitoring')">
+                        <i class="fas fa-camera me-2"></i>IP Camera/RTSP Monitoring
+                    </button>
+                    <button class="btn btn-primary" onclick="loadTemplate('realsense_depth')">
+                        <i class="fas fa-cube me-2"></i>RealSense Depth Camera
+                    </button>
+                    <button class="btn btn-primary" onclick="loadTemplate('batch_processing')">
+                        <i class="fas fa-folder me-2"></i>Batch Image Processing
+                    </button>
+                    <button class="btn btn-primary" onclick="loadTemplate('data_capture')">
+                        <i class="fas fa-database me-2"></i>Data Capture Only
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline Status -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Pipeline Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="h4 text-primary mb-0" id="totalPipelines">0</div>
+                        <small class="text-muted">Total Pipelines</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="h4 text-success mb-0" id="activePipelineCount">0</div>
+                        <small class="text-muted">Active</small>
+                    </div>
+                </div>
+                <hr>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="h6 text-info mb-0" id="avgFPS">0</div>
+                        <small class="text-muted">Avg FPS</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="h6 text-warning mb-0" id="avgLatency">0ms</div>
+                        <small class="text-muted">Avg Latency</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pipeline Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" role="dialog" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">
+                    <i class="fas fa-eye me-2"></i>Pipeline Preview: <span id="previewPipelineName">Loading...</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="previewContainer">
+                    <img id="previewStream" src="" class="preview-stream" />
+                </div>
+                <div id="previewStatus" class="mt-3">
+                    <small class="text-muted">Loading stream...</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="toggleFullscreen()">
+                    <i class="fas fa-expand"></i> Fullscreen
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden file input for pipeline import -->
+<input type="file" id="pipelineImportInput" accept=".zip" style="display: none;" />
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentDestinations = [];
+let availableModels = [];
+let editingPipelineId = null; // Track if we're editing a pipeline
+let allPipelines = {}; // Store all pipeline data for editing
+let availableDevices = []; // Store available hardware devices
+let hardwareInfo = null; // Store detailed hardware information
+let editingDestinationId = null; // Track if we're editing a destination
+
+// Filter function for button selectors
+function filterButtonSelector(selectorId, searchTerm) {
+    const selector = document.getElementById(selectorId);
+    const items = selector.querySelectorAll('.button-selector-item');
+    const term = searchTerm.toLowerCase().trim();
+    
+    items.forEach(item => {
+        if (!item.classList.contains('upload-button') && !item.querySelector('.fa-spinner')) {
+            const label = item.querySelector('.label')?.textContent?.toLowerCase() || '';
+            const description = item.querySelector('.description')?.textContent?.toLowerCase() || '';
+            const icon = item.querySelector('.icon')?.innerHTML?.toLowerCase() || '';
+            
+            // Check if search term matches label, description, or has relevant keywords
+            const matches = label.includes(term) || 
+                          description.includes(term) ||
+                          (term === 'gpu' && (label.includes('gpu') || description.includes('gpu') || icon.includes('bolt') || icon.includes('display'))) ||
+                          (term === 'cpu' && (label.includes('cpu') || description.includes('cpu') || icon.includes('microchip'))) ||
+                          (term === 'intel' && (label.includes('intel') || description.includes('intel'))) ||
+                          (term === 'nvidia' && (label.includes('nvidia') || description.includes('nvidia') || description.includes('cuda'))) ||
+                          (term === 'camera' && (label.includes('camera') || label.includes('webcam') || label.includes('basler') || label.includes('ximea'))) ||
+                          (term === 'yolo' && (label.includes('yolo') || label.includes('ultralytics'))) ||
+                          (term === 'detection' && description.includes('detection')) ||
+                          (term === 'http' && (label.includes('webhook') || description.includes('http'))) ||
+                          (term === 'mqtt' && label.includes('mqtt')) ||
+                          (term === 'file' && (label.includes('file') || description.includes('file'))) ||
+                          (term === 'serial' && label.includes('serial')) ||
+                          (term === 'null' && (label.includes('null') || label.includes('discard') || description.includes('discard'))) ||
+                          (term === 'discard' && (label.includes('null') || label.includes('discard') || description.includes('discard')));
+            
+            if (term === '' || matches) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        }
+    });
+}
+
+// Handle filter input with clear button functionality
+function handleFilterInput(selectorId, inputElement) {
+    filterButtonSelector(selectorId, inputElement.value);
+    toggleClearButton(inputElement);
+}
+
+// Toggle visibility of clear button based on input content
+function toggleClearButton(inputElement) {
+    const clearBtn = inputElement.parentElement.querySelector('.filter-clear-btn');
+    if (inputElement.value.trim() !== '') {
+        clearBtn.classList.add('show');
+    } else {
+        clearBtn.classList.remove('show');
+    }
+}
+
+// Clear filter and hide clear button
+function clearFilter(selectorId, inputId) {
+    const inputElement = document.getElementById(inputId);
+    inputElement.value = '';
+    filterButtonSelector(selectorId, '');
+    toggleClearButton(inputElement);
+    clearQuickSearchBadges(inputId);
+    inputElement.focus(); // Return focus to input
+}
+
+// Quick search function for badges
+function quickSearch(inputId, selectorId, searchTerm) {
+    const inputElement = document.getElementById(inputId);
+    
+    // If the badge is already active (current search term), clear the search
+    if (inputElement.value.toLowerCase() === searchTerm.toLowerCase()) {
+        inputElement.value = '';
+        filterButtonSelector(selectorId, '');
+        toggleClearButton(inputElement);
+        clearQuickSearchBadges(inputId);
+    } else {
+        // Set the search term and filter
+        inputElement.value = searchTerm;
+        filterButtonSelector(selectorId, searchTerm);
+        toggleClearButton(inputElement);
+        updateQuickSearchBadges(inputId, searchTerm);
+    }
+    
+    inputElement.focus();
+}
+
+// Update quick search badge active states
+function updateQuickSearchBadges(inputId, activeTerm) {
+    const container = document.getElementById(inputId).closest('.filter-container');
+    const badges = container.querySelectorAll('.quick-search-badge');
+    
+    badges.forEach(badge => {
+        const badgeText = badge.textContent.toLowerCase();
+        if (badgeText === activeTerm.toLowerCase()) {
+            badge.classList.add('active');
+        } else {
+            badge.classList.remove('active');
+        }
+    });
+}
+
+// Clear all quick search badge active states
+function clearQuickSearchBadges(inputId) {
+    const container = document.getElementById(inputId).closest('.filter-container');
+    const badges = container.querySelectorAll('.quick-search-badge');
+    
+    badges.forEach(badge => {
+        badge.classList.remove('active');
+    });
+}
+
+// Button selector functions
+function selectFrameSource(value) {
+    // Validate that the frame source is available
+    if (availableFrameSourceTypes.length > 0 && !isFrameSourceAvailable(value)) {
+        const metadata = getFrameSourceMetadata(value);
+        const errorMsg = metadata?.error || 'Frame source not available';
+        showAlert('warning', `${value} is not available: ${errorMsg}`);
+        return;
+    }
+    
+    // Update hidden input
+    document.getElementById('frameSourceType').value = value;
+    
+    // Update visual selection
+    const selector = document.getElementById('frameSourceSelector');
+    selector.querySelectorAll('.button-selector-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    const selectedItem = selector.querySelector(`[data-value="${value}"]`);
+    if (selectedItem) {
+        selectedItem.classList.add('active');
+    }
+    
+    // Update configuration
+    updateFrameSourceConfig();
+    
+    // Show/hide discover devices button
+    toggleDiscoverDevicesButton(value);
+}
+
+function selectInferenceEngine(value) {
+    // Update hidden input
+    document.getElementById('inferenceEngine').value = value;
+    
+    // Update visual selection
+    const selector = document.getElementById('inferenceEngineSelector');
+    
+    if (value === 'pass') {
+        // Pass engine: clear all others and make this one active
+        selector.querySelectorAll('.button-selector-item').forEach(item => {
+            item.classList.remove('active');
+            const engineType = item.getAttribute('data-value');
+            if (engineType === 'pass') {
+                item.classList.add('active');
+                item.classList.remove('disabled');
+            } else {
+                // Disable other engines when Pass is selected
+                item.classList.add('disabled');
+            }
+        });
+        
+        // Clear model selection but keep model selection visible
+        clearModelSelection();
+        showModelSelection(); // Keep it visible
+        hideInferenceSwitch(); // Hide the inference switch
+        
+        // Disable and deselect device buttons (no inference hardware needed)
+        const deviceSelector = document.getElementById('deviceSelector');
+        if (deviceSelector) {
+            deviceSelector.querySelectorAll('.button-selector-item').forEach(item => {
+                item.classList.remove('active');
+                item.classList.add('disabled');
+            });
+            // Clear device selection
+            const deviceInput = document.getElementById('device');
+            if (deviceInput) {
+                deviceInput.value = '';
+            }
+        }
+    } else {
+        // Other engines: auto-selected based on model, disable all others
+        selector.querySelectorAll('.button-selector-item').forEach(item => {
+            item.classList.remove('active');
+            const engineType = item.getAttribute('data-value');
+            if (engineType === 'pass') {
+                // Keep Pass engine always selectable
+                item.classList.remove('disabled');
+            } else {
+                item.classList.add('disabled');
+            }
+        });
+        
+        // Highlight the selected engine
+        const selectedItem = selector.querySelector(`[data-value="${value}"]`);
+        if (selectedItem) {
+            selectedItem.classList.add('active');
+            selectedItem.classList.remove('disabled');
+            
+            // Update description to show it's auto-selected
+            const descriptionElement = selectedItem.querySelector('.description');
+            if (descriptionElement && availableEngineTypes && availableEngineTypes.length > 0) {
+                const engineInfo = availableEngineTypes.find(engine => engine.type === value);
+                if (engineInfo) {
+                    descriptionElement.textContent = `Auto-selected • ${engineInfo.description}`;
+                }
+            }
+        }
+        
+        // Show model selection step and inference switch for other engines
+        showModelSelection();
+        showInferenceSwitch();
+        
+        // Re-enable device buttons for inference engines
+        const deviceSelector = document.getElementById('deviceSelector');
+        if (deviceSelector) {
+            deviceSelector.querySelectorAll('.button-selector-item').forEach(item => {
+                item.classList.remove('disabled');
+            });
+        }
+    }
+}
+
+// Reset inference engine selector to default state
+function resetInferenceEngineSelector() {
+    const selector = document.getElementById('inferenceEngineSelector');
+    
+    // Reset all engines to default state
+    selector.querySelectorAll('.button-selector-item').forEach(item => {
+        item.classList.remove('active');
+        const engineType = item.getAttribute('data-value');
+        
+        // For dynamic engines, set appropriate default state
+        if (availableEngineTypes && availableEngineTypes.length > 0) {
+            const engineInfo = availableEngineTypes.find(e => e.type === engineType);
+            if (engineInfo) {
+                if (engineInfo.type === 'pass') {
+                    // Pass engine is always selectable
+                    item.classList.remove('disabled');
+                } else {
+                    // Other engines are disabled by default (until auto-selected by model)
+                    item.classList.add('disabled');
+                }
+            }
+        } else {
+            // Fallback behavior for backwards compatibility
+            if (engineType === 'pass') {
+                item.classList.remove('disabled');
+            } else {
+                item.classList.add('disabled');
+            }
+        }
+        
+        // Restore original descriptions
+        const descriptionElement = item.querySelector('.description');
+        if (descriptionElement && availableEngineTypes && availableEngineTypes.length > 0) {
+            const engineInfo = availableEngineTypes.find(engine => engine.type === engineType);
+            if (engineInfo) {
+                descriptionElement.textContent = engineInfo.description;
+            }
+        }
+    });
+    
+    // Clear hidden input
+    document.getElementById('inferenceEngine').value = '';
+    
+    // Show model selection and inference switch again
+    showModelSelection();
+    showInferenceSwitch();
+}
+
+// Helper function to clear model selection
+function clearModelSelection() {
+    // Clear the hidden input
+    document.getElementById('selectedModel').value = '';
+    
+    // Clear visual selection
+    const selector = document.getElementById('modelSelector');
+    if (selector) {
+        selector.querySelectorAll('.button-selector-item').forEach(item => {
+            item.classList.remove('active');
+        });
+    }
+    
+    // Clear model info - show default message
+    const infoDiv = document.getElementById('modelInfo');
+    if (infoDiv) {
+        infoDiv.innerHTML = '<div class="text-muted">Select a model to see details</div>';
+    }
+}
+
+// Helper function to hide model selection step
+function hideModelSelection() {
+    // Hide the specific model selection step section
+    const modelStepSection = document.getElementById('modelSelectionStep');
+    if (modelStepSection) {
+        modelStepSection.style.display = 'none';
+    }
+    
+    // Remove required attribute from model selection
+    const modelInput = document.getElementById('selectedModel');
+    if (modelInput) {
+        modelInput.removeAttribute('required');
+    }
+}
+
+// Helper function to show model selection step
+function showModelSelection() {
+    // Show the specific model selection step section
+    const modelStepSection = document.getElementById('modelSelectionStep');
+    if (modelStepSection) {
+        modelStepSection.style.display = 'block';
+    }
+    
+    // Add required attribute back to model selection
+    const modelInput = document.getElementById('selectedModel');
+    if (modelInput) {
+        modelInput.setAttribute('required', 'required');
+    }
+}
+
+// Helper function to hide inference switch
+function hideInferenceSwitch() {
+    const inferenceSwitch = document.getElementById('enableInferenceSection');
+    if (inferenceSwitch) {
+        inferenceSwitch.style.display = 'none';
+    }
+}
+
+// Helper function to show inference switch
+function showInferenceSwitch() {
+    const inferenceSwitch = document.getElementById('enableInferenceSection');
+    if (inferenceSwitch) {
+        inferenceSwitch.style.display = 'block';
+    }
+}
+
+function selectDevice(value) {
+    // Update hidden input
+    document.getElementById('inferenceDevice').value = value;
+    
+    // Update visual selection
+    const selector = document.getElementById('deviceSelector');
+    selector.querySelectorAll('.button-selector-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    const targetItem = selector.querySelector(`[data-value="${value}"]`);
+    if (targetItem) {
+        targetItem.classList.add('active');
+    }
+    
+    // Update device information
+    // updateDeviceInfo();
+}
+
+// Helper function to clear all destination and favorite selections
+function clearAllDestinationSelections() {
+    // Clear destination type selection
+    const destinationInput = document.getElementById('destinationType');
+    if (destinationInput) {
+        destinationInput.value = '';
+    }
+    
+    const destinationSelector = document.getElementById('destinationTypeSelector');
+    if (destinationSelector) {
+        destinationSelector.querySelectorAll('.button-selector-item').forEach(item => {
+            item.classList.remove('active');
+        });
+    }
+    
+    // Clear favorite selection
+    const favoriteInput = document.getElementById('favoriteConfigSelect');
+    if (favoriteInput) {
+        favoriteInput.value = '';
+    }
+    
+    const favoriteSelector = document.getElementById('favoriteConfigSelector');
+    if (favoriteSelector) {
+        favoriteSelector.querySelectorAll('.button-selector-item').forEach(item => {
+            item.classList.remove('active');
+        });
+    }
+}
+
+function selectDestinationType(value) {
+    // Clear all selections first
+    clearAllDestinationSelections();
+    
+    // Update hidden input and visual selection for this destination type
+    document.getElementById('destinationType').value = value;
+    const selector = document.getElementById('destinationTypeSelector');
+    selector.querySelector(`[data-value="${value}"]`).classList.add('active');
+    
+    // Update configuration
+    updateDestinationConfig();
+}
+
+function selectModel(modelId) {
+    // Update hidden input
+    document.getElementById('selectedModel').value = modelId;
+    
+    // Update visual selection
+    const selector = document.getElementById('modelSelector');
+    selector.querySelectorAll('.button-selector-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    selector.querySelector(`[data-value="${modelId}"]`).classList.add('active');
+    
+    // Update model info and auto-select engine
+    updateModelInfo();
+    
+    // Auto-select the compatible engine type
+    const model = availableModels.find(m => m.id === modelId);
+    if (model && model.engine_type) {
+        selectInferenceEngine(model.engine_type);
+    }
+}
+
+function selectFavoriteConfig(favoriteId) {
+    // Clear all selections first
+    clearAllDestinationSelections();
+    
+    // Update hidden input and visual selection for this favorite
+    document.getElementById('favoriteConfigSelect').value = favoriteId;
+    if (favoriteId) {
+        const selector = document.getElementById('favoriteConfigSelector');
+        selector.querySelector(`[data-value="${favoriteId}"]`).classList.add('active');
+    }
+    
+    // Load the favorite configuration
+    loadFavoriteInPipeline();
+}
+
+// Load available hardware devices
+async function loadAvailableDevices() {
+    try {
+        const response = await fetch('/api/hardware');
+        const data = await response.json();
+        
+        if (response.ok) {
+            hardwareInfo = data;
+            availableDevices = data.available_devices || [];
+            updateDeviceSelector();
+        } else {
+            console.error('Failed to load hardware info:', data.error);
+            // Show error message instead of fallback
+            availableDevices = [];
+            updateDeviceSelector();
+        }
+    } catch (error) {
+        console.error('Error loading hardware info:', error);
+        // Show error message instead of fallback
+        availableDevices = [];
+        updateDeviceSelector();
+    }
+}
+
+// Update the device selector based on available hardware
+function updateDeviceSelector() {
+    const selector = document.getElementById('deviceSelector');
+    const infoDiv = document.getElementById('deviceInfo');
+    
+    if (availableDevices.length === 0) {
+        selector.innerHTML = `
+            <div class="alert alert-warning text-center py-3">
+                <i class="fas fa-exclamation-triangle mb-2"></i><br>
+                <strong>No compatible hardware detected</strong><br>
+                <small>Please ensure you have supported hardware or check the hardware detection system.</small>
+            </div>
+        `;
+        infoDiv.innerHTML = '<small class="text-danger">Hardware detection failed - cannot create pipeline</small>';
+        document.getElementById('inferenceDevice').value = '';
+        return;
+    }
+    
+    // Get Intel GPU details for enhanced display
+    const intelGpuDetails = hardwareInfo?.intel_gpu_details || {};
+    // Get NVIDIA GPU details for enhanced display
+    const nvidiaGpuDetails = hardwareInfo?.nvidia_gpu_details || {};
+    
+    // Create device options with user-friendly names
+    const deviceMappings = {
+        'intel:cpu': { value: 'intel:cpu', label: 'Intel CPU', description: 'Intel optimized', icon: 'fa-microchip' },
+        'amd:cpu': { value: 'amd:cpu', label: 'AMD CPU', description: 'AMD optimized', icon: 'fa-microchip' },
+        'nvidia:gpu': { value: 'cuda', label: 'NVIDIA GPU', description: 'CUDA acceleration', icon: 'fa-bolt' },
+        'amd:gpu': { value: 'amd:gpu', label: 'AMD GPU', description: 'GPU acceleration', icon: 'fa-bolt' },
+        'intel:npu': { value: 'intel:npu', label: 'Intel NPU', description: 'Neural processor', icon: 'fa-brain' },
+        'mps': { value: 'mps', label: 'Apple Silicon', description: 'MPS acceleration', icon: 'fa-bolt' },
+        'apple:neural_engine': { value: 'apple:neural_engine', label: 'Apple Neural', description: 'AI hardware', icon: 'fa-brain' }
+    };
+    
+    selector.innerHTML = '';
+    
+    // Add device options as buttons
+    availableDevices.forEach(device => {
+        let mapping;
+        
+        // Special handling for Intel GPU devices with detailed info
+        if (device.startsWith('intel:gpu')) {
+            // Extract GPU device ID (e.g., 'gpu.0' from 'intel:gpu.0')
+            const deviceId = device.replace('intel:', '').toUpperCase(); // Convert to 'GPU.0'
+            
+            if (intelGpuDetails[deviceId]) {
+                const gpuInfo = intelGpuDetails[deviceId];
+                mapping = {
+                    value: device.toLowerCase(),
+                    label: gpuInfo.friendly_name,
+                    description: gpuInfo.description,
+                    icon: gpuInfo.is_igpu ? 'fa-display' : 'fa-bolt'
+                };
+            } else {
+                // Fallback if details not available
+                mapping = {
+                    value: device.toLowerCase(),
+                    label: 'Intel GPU',
+                    description: 'Intel GPU processing',
+                    icon: 'fa-display'
+                };
+            }
+        } else if (device.startsWith('cuda:')) {
+            // Special handling for NVIDIA GPU devices with detailed info
+            // Extract GPU device ID (e.g., '0' from 'cuda:0')
+            const deviceId = device.replace('cuda:', '');
+            
+            if (nvidiaGpuDetails[deviceId]) {
+                const gpuInfo = nvidiaGpuDetails[deviceId];
+                mapping = {
+                    value: device.toLowerCase(),
+                    label: gpuInfo.name,
+                    description: gpuInfo.description || 'NVIDIA CUDA GPU',
+                    icon: 'fa-bolt'
+                };
+            } else {
+                // Fallback if details not available
+                mapping = {
+                    value: device.toLowerCase(),
+                    label: `NVIDIA GPU ${deviceId}`,
+                    description: 'CUDA acceleration',
+                    icon: 'fa-bolt'
+                };
+            }
+        } else {
+            // Use predefined mapping or create default
+            mapping = deviceMappings[device] || { 
+                value: device.toLowerCase(), 
+                label: device, 
+                description: `${device} processing`,
+                icon: 'fa-microchip'
+            };
+        }
+        
+        // Add emojis for special device types
+        let description = mapping.description;
+        if (mapping.value.includes('cuda')) {
+            description = `🚀 ${mapping.description}`;
+        } else if (mapping.value.includes('npu')) {
+            description = `🧠 ${mapping.description}`;
+        } else if (mapping.value.includes('mps')) {
+            description = `🍎 ${mapping.description}`;
+        }
+        
+        const button = document.createElement('div');
+        button.className = 'button-selector-item';
+        button.setAttribute('data-value', mapping.value);
+        button.onclick = () => selectDevice(mapping.value);
+        
+        button.innerHTML = `
+            <div class="icon"><i class="fas ${mapping.icon}"></i></div>
+            <div class="label">${mapping.label}</div>
+            <div class="description">${description}</div>
+        `;
+        
+        selector.appendChild(button);
+    });
+    
+    // Set optimal device as default if available
+    let optimalDevice = hardwareInfo?.optimal_device || availableDevices[0] || '';
+    
+    selectDevice(optimalDevice);
+    // updateDeviceInfo();
+}
+
+// Update device information display
+// function updateDeviceInfo() {
+//     const selectedDevice = document.getElementById('inferenceDevice').value;
+//     const infoDiv = document.getElementById('deviceInfo');
+//     const selectedEngine = document.getElementById('inferenceEngine').value;
+    
+//     if (!selectedDevice || !hardwareInfo) {
+//         infoDiv.innerHTML = '';
+//         return;
+//     }
+    
+//     let infoText = '';
+//     let infoClass = 'text-muted';
+    
+//     // Provide additional context based on selected device
+//     if (selectedDevice === hardwareInfo.optimal_device) {
+//         infoText = 'Optimal device selected for best performance';
+//         infoClass = 'text-success';
+//     } else if (selectedDevice.includes('cuda') && hardwareInfo.device_capabilities?.nvidia_gpu) {
+//         infoText = 'CUDA acceleration enabled';
+//         infoClass = 'text-info';
+//     } else if (selectedDevice.includes('intel:gpu') && hardwareInfo.device_capabilities?.intel_gpu) {
+//         infoText = 'Intel GPU acceleration enabled';
+//         infoClass = 'text-info';
+//     } else if (selectedDevice.includes('npu') && hardwareInfo.device_capabilities?.intel_npu) {
+//         infoText = 'Neural Processing Unit acceleration';
+//         infoClass = 'text-info';
+//     } else if (selectedDevice.includes('mps') && hardwareInfo.device_capabilities?.apple_metal) {
+//         infoText = 'Apple Metal acceleration enabled';
+//         infoClass = 'text-info';
+//     } else if (selectedDevice.includes('cpu')) {
+//         infoText = 'Using CPU processing';
+//         infoClass = 'text-muted';
+//     } else {
+//         infoText = 'Custom device configuration';
+//         infoClass = 'text-muted';
+//     }
+    
+//     infoDiv.innerHTML = `<small class="${infoClass}"><i class="fas fa-info-circle me-1"></i>${infoText}</small>`;
+// }
+
+// Helper function to set optimal device for a given template type
+function setOptimalDeviceForTemplate(templateType) {
+    if (!hardwareInfo) {
+        // Fallback if hardware info not loaded yet - use first available device
+        const firstDevice = availableDevices[0] || '';
+        selectDevice(firstDevice);
+        return;
+    }
+    
+    let recommendedDevice = hardwareInfo.optimal_device || availableDevices[0] || '';
+    
+    switch (templateType) {
+        case 'webcam_detection':
+        case 'batch_processing':
+            // For these templates, prefer GPU for better performance
+            if (hardwareInfo.device_capabilities?.nvidia_gpu) {
+                recommendedDevice = 'cuda';
+            } else if (hardwareInfo.device_capabilities?.intel_gpu) {
+                recommendedDevice = 'intel:gpu';
+            } else {
+                recommendedDevice = hardwareInfo.optimal_device || availableDevices[0] || '';
+            }
+            break;
+            
+        case 'ip_camera_monitoring':
+            // For continuous monitoring, prefer GPU for better performance
+            recommendedDevice = hardwareInfo.optimal_device || availableDevices[0] || '';
+            break;
+            
+        case 'realsense_depth':
+            // Depth processing benefits from GPU acceleration
+            if (hardwareInfo.device_capabilities?.nvidia_gpu) {
+                recommendedDevice = 'cuda';
+            } else if (hardwareInfo.device_capabilities?.intel_gpu) {
+                recommendedDevice = 'intel:gpu';
+            } else {
+                recommendedDevice = hardwareInfo.optimal_device || availableDevices[0] || '';
+            }
+            break;
+            
+        default:
+            recommendedDevice = hardwareInfo.optimal_device || availableDevices[0] || '';
+    }
+    
+    // Select the recommended device using button selector
+    selectDevice(recommendedDevice);
+}
+
+// Alert function now handled by centralized notification system in app.js
+
+// Update frame source configuration form
+function updateFrameSourceConfig() {
+    const sourceType = document.getElementById('frameSourceType').value;
+    const configDiv = document.getElementById('frameSourceConfig');
+    
+    if (!sourceType) {
+        configDiv.innerHTML = '<div class="text-muted">Select a source type to configure</div>';
+        return;
+    }
+    
+    // Find the frame source type configuration schema
+    const frameSourceType = availableFrameSourceTypes.find(ft => ft.type === sourceType);
+    
+    if (!frameSourceType) {
+        configDiv.innerHTML = '<div class="text-danger">Unknown frame source type</div>';
+        return;
+    }
+    
+    if (!frameSourceType.available) {
+        configDiv.innerHTML = `
+            <div class="alert alert-warning">
+                <strong>Frame Source Not Available</strong><br>
+                ${frameSourceType.error || 'Dependencies missing'}
+            </div>
+        `;
+        return;
+    }
+    
+    // Generate form fields from schema with discovered devices
+    const discoveredDevices = window.discoveredDevices?.[sourceType] || [];
+    const formFields = generateFormFieldsWithDiscoveredDevices(frameSourceType.config_schema, discoveredDevices);
+    
+    const configHtml = `
+        <label class="form-label">${frameSourceType.name} Configuration</label>
+        <div class="row g-2">
+            ${formFields}
+        </div>
+    `;
+    
+    configDiv.innerHTML = configHtml;
+}
+
+// Collect frame source configuration data from form fields based on schema
+function collectFrameSourceConfigFromSchema(sourceType) {
+    const frameSourceType = availableFrameSourceTypes.find(ft => ft.type === sourceType);
+    
+    if (!frameSourceType || !frameSourceType.config_schema) {
+        return { config: {}, requiredFields: [] };
+    }
+    
+    const config = {};
+    const requiredFields = [];
+    const missingFields = [];
+    
+    for (const field of frameSourceType.config_schema.fields) {
+        const element = document.getElementById(field.name);
+        
+        if (!element) {
+            console.warn(`Frame source config field element not found: ${field.name}`);
+            continue;
+        }
+        
+        let value;
+        
+        if (field.type === 'checkbox') {
+            value = element.checked;
+        } else if (field.type === 'number') {
+            const numValue = parseFloat(element.value);
+            value = isNaN(numValue) ? undefined : numValue;
+        } else if (field.type === 'select') {
+            value = element.value || undefined;
+        } else {
+            value = element.value.trim() || undefined;
+        }
+        
+        // Handle required fields
+        if (field.required) {
+            requiredFields.push(field.name);
+            if (value === undefined || value === '') {
+                missingFields.push(field.label || field.name);
+            }
+        }
+        
+        // Only add non-undefined values to config
+        if (value !== undefined) {
+            config[field.name] = value;
+        }
+    }
+    
+    return { 
+        config, 
+        requiredFields, 
+        missingFields,
+        isValid: missingFields.length === 0 
+    };
+}
+
+// Generate form fields dynamically based on configuration schema
+function generateFormFieldsFromSchema(schema, prefix = '') {
+    if (!schema || !schema.fields || schema.fields.length === 0) {
+        return '<div class="text-muted">No configuration fields available</div>';
+    }
+    
+    // Separate base fields (common to all destinations) from destination-specific fields
+    const baseFieldNames = ['rate_limit', 'include_image_data', 'max_frames'];
+    const baseFields = [];
+    const specificFields = [];
+    
+    schema.fields.forEach(field => {
+        if (baseFieldNames.includes(field.name)) {
+            baseFields.push(field);
+        } else {
+            specificFields.push(field);
+        }
+    });
+    
+    // Reorder: base fields first, then destination-specific fields
+    const orderedFields = [...baseFields, ...specificFields];
+    
+    return orderedFields.map(field => {
+        const fieldId = prefix + field.name;
+        const required = field.required ? ' required' : '';
+        const requiredStar = field.required ? ' *' : '';
+        
+        let fieldHtml = '';
+        
+        switch (field.type) {
+            case 'text':
+            case 'url':
+                fieldHtml = `
+                    <div class="col-${field.name === 'topic' || field.name === 'url' || field.name === 'folder_path' ? '12' : '6'}">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}</label>
+                        <input type="text" class="form-control form-control-sm" id="${fieldId}" 
+                               placeholder="${field.placeholder || ''}" ${required}
+                               title="${field.description || ''}">
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'password':
+                fieldHtml = `
+                    <div class="col-6">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}</label>
+                        <input type="password" class="form-control form-control-sm" id="${fieldId}" 
+                               placeholder="${field.placeholder || ''}" ${required}
+                               title="${field.description || ''}">
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'number':
+                const min = field.min !== undefined ? ` min="${field.min}"` : '';
+                const max = field.max !== undefined ? ` max="${field.max}"` : '';
+                const step = field.step !== undefined ? ` step="${field.step}"` : '';
+                const defaultValue = field.default !== undefined ? ` value="${field.default}"` : '';
+                const colWidth = field.col_width || 6;  // Use col_width from schema or default to 6
+                
+                fieldHtml = `
+                    <div class="col-${colWidth}">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}${field.unit ? ` (${field.unit})` : ''}</label>
+                        <input type="number" class="form-control form-control-sm" id="${fieldId}" 
+                               placeholder="${field.placeholder || ''}" ${required}${min}${max}${step}${defaultValue}
+                               title="${field.description || ''}">
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'select':
+                const options = field.options ? field.options.map(opt => 
+                    `<option value="${opt.value}"${field.default === opt.value ? ' selected' : ''}>${opt.label}</option>`
+                ).join('') : '';
+                
+                fieldHtml = `
+                    <div class="col-6">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}</label>
+                        <select class="form-select form-select-sm" id="${fieldId}" ${required}
+                                title="${field.description || ''}">
+                            ${!field.required ? '<option value="">Select...</option>' : ''}
+                            ${options}
+                        </select>
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'checkbox':
+                const checked = field.default ? ' checked' : '';
+                
+                // Special handling for include_image_data and include_result_image to display side by side
+                const isImageCheckbox = field.name === 'include_image_data' || field.name === 'include_result_image';
+                const checkboxColWidth = isImageCheckbox ? '6' : '12';
+                
+                fieldHtml = `
+                    <div class="col-${checkboxColWidth}">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="${fieldId}" value="true"${checked}>
+                            <label class="form-check-label" for="${fieldId}">
+                                ${field.label}
+                            </label>
+                        </div>
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'textarea':
+                const rows = field.rows || 3;
+                
+                fieldHtml = `
+                    <div class="col-12">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}</label>
+                        <textarea class="form-control form-control-sm" id="${fieldId}" rows="${rows}"
+                                  placeholder="${field.placeholder || ''}" ${required}
+                                  title="${field.description || ''}"></textarea>
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'info':
+                fieldHtml = `
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>${field.label}:</strong> ${field.description || ''}
+                        </div>
+                    </div>`;
+                break;
+                
+            default:
+                fieldHtml = `
+                    <div class="col-12">
+                        <div class="text-muted">Unsupported field type: ${field.type}</div>
+                    </div>`;
+        }
+        
+        return fieldHtml;
+    }).join('\n');
+}
+
+// Generate form fields with discovered devices for device-specific fields
+function generateFormFieldsWithDiscoveredDevices(schema, discoveredDevices = []) {
+    if (!schema || !schema.fields || schema.fields.length === 0) {
+        return '<div class="text-muted">No configuration fields available</div>';
+    }
+    
+    return schema.fields.map(field => {
+        const fieldId = field.name;
+        const required = field.required ? ' required' : '';
+        const requiredStar = field.required ? ' *' : '';
+        
+        let fieldHtml = '';
+        
+        // Check if this field could benefit from device discovery
+        const isDeviceField = ['device_id', 'camera_index', 'device_index', 'camera_id', 'serial_number', 'source'].includes(field.name.toLowerCase()) ||
+                             field.name.toLowerCase().includes('device') ||
+                             field.name.toLowerCase().includes('camera') ||
+                             field.name.toLowerCase().includes('source');
+        
+        switch (field.type) {
+            case 'text':
+            case 'url':
+                fieldHtml = `
+                    <div class="col-${field.name === 'topic' || field.name === 'url' || field.name === 'folder_path' ? '12' : '6'}">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}</label>
+                        <input type="text" class="form-control form-control-sm" id="${fieldId}" 
+                               placeholder="${field.placeholder || ''}" ${required}
+                               title="${field.description || ''}">
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'password':
+                fieldHtml = `
+                    <div class="col-6">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}</label>
+                        <input type="password" class="form-control form-control-sm" id="${fieldId}" 
+                               placeholder="${field.placeholder || ''}" ${required}
+                               title="${field.description || ''}">
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'number':
+                const min = field.min !== undefined ? ` min="${field.min}"` : '';
+                const max = field.max !== undefined ? ` max="${field.max}"` : '';
+                const step = field.step !== undefined ? ` step="${field.step}"` : '';
+                const defaultValue = field.default !== undefined ? ` value="${field.default}"` : '';
+                const colWidth = field.col_width || 6;  // Use col_width from schema or default to 6
+                
+                fieldHtml = `
+                    <div class="col-${colWidth}">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}${field.unit ? ` (${field.unit})` : ''}</label>
+                        <input type="number" class="form-control form-control-sm" id="${fieldId}" 
+                               placeholder="${field.placeholder || ''}" ${required}${min}${max}${step}${defaultValue}
+                               title="${field.description || ''}">
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'select':
+                let options = '';
+                let hasDiscoveredDevices = false;
+                let deviceDropdownClass = 'form-select form-select-sm';
+                
+                // If this is a device field and we have discovered devices, populate options
+                if (isDeviceField && discoveredDevices && discoveredDevices.length > 0) {
+                    hasDiscoveredDevices = true;
+                    deviceDropdownClass += ' device-dropdown discovered';
+                    
+                    options = discoveredDevices.map(device => {
+                        // Create user-friendly labels based on device type
+                        let label = device.name || device.description || `Device ${device.index || device.id}`;
+                        
+                        // For webcam devices, use friendly names
+                        if (device.type === 'webcam' && device.name) {
+                            label = device.name; // e.g., "Windows Studio Effects Camera", "Logitech C920"
+                        }
+                        // For audio devices, use the description
+                        else if (device.type === 'audio' && device.description) {
+                            label = device.description; // e.g., "Primary Sound Capture Driver"
+                        }
+                        
+                        const value = device.id || device.index || device.serial_number || device.path;
+                        return `<option value="${value}">${label}</option>`;
+                    }).join('');
+                } else if (field.options) {
+                    // Use predefined options if no devices discovered
+                    options = field.options.map(opt => 
+                        `<option value="${opt.value}"${field.default === opt.value ? ' selected' : ''}>${opt.label}</option>`
+                    ).join('');
+                }
+                
+                let statusMessage = '';
+                if (hasDiscoveredDevices) {
+                    statusMessage = `<div class="discovery-success"><i class="fas fa-check-circle me-1"></i>${discoveredDevices.length} device(s) discovered</div>`;
+                } else if (isDeviceField) {
+                    statusMessage = '<div class="form-text text-warning"><i class="fas fa-exclamation-triangle me-1"></i>No devices discovered. Click "Discover Devices" or enter manually.</div>';
+                }
+                
+                fieldHtml = `
+                    <div class="col-6">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}</label>
+                        <select class="${deviceDropdownClass}" id="${fieldId}" ${required}
+                                title="${field.description || ''}">
+                            ${!field.required ? '<option value="">Select...</option>' : ''}
+                            ${options}
+                        </select>
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                        ${statusMessage}
+                    </div>`;
+                break;
+                
+            case 'checkbox':
+                const checked = field.default ? ' checked' : '';
+                
+                // Special handling for include_image_data and include_result_image to display side by side
+                const isImageCheckbox = field.name === 'include_image_data' || field.name === 'include_result_image';
+                const checkboxColWidth = isImageCheckbox ? '6' : '12';
+                
+                fieldHtml = `
+                    <div class="col-${checkboxColWidth}">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="${fieldId}" value="true"${checked}>
+                            <label class="form-check-label" for="${fieldId}">
+                                ${field.label}
+                            </label>
+                        </div>
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'textarea':
+                const rows = field.rows || 3;
+                
+                fieldHtml = `
+                    <div class="col-12">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}</label>
+                        <textarea class="form-control form-control-sm" id="${fieldId}" rows="${rows}"
+                                  placeholder="${field.placeholder || ''}" ${required}
+                                  title="${field.description || ''}"></textarea>
+                        ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'info':
+                fieldHtml = `
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>${field.label}:</strong> ${field.description || ''}
+                        </div>
+                    </div>`;
+                break;
+                
+            default:
+                fieldHtml = `
+                    <div class="col-12">
+                        <div class="text-muted">Unsupported field type: ${field.type}</div>
+                    </div>`;
+        }
+        
+        return fieldHtml;
+    }).join('\n');
+}
+
+// Update destination configuration form
+function updateDestinationConfig() {
+    const destType = document.getElementById('destinationType').value;
+    const configDiv = document.getElementById('destinationConfig');
+    
+    if (!destType) {
+        configDiv.innerHTML = '<div class="text-muted">Select a destination type to configure</div>';
+        return;
+    }
+    
+    // Find the destination type configuration schema
+    const destinationType = availableDestinationTypes.find(dt => dt.type === destType);
+    
+    if (!destinationType) {
+        configDiv.innerHTML = '<div class="text-danger">Unknown destination type</div>';
+        return;
+    }
+    
+    if (!destinationType.available) {
+        configDiv.innerHTML = `
+            <div class="alert alert-warning">
+                <strong>Destination Not Available</strong><br>
+                ${destinationType.error || 'Dependencies missing'}
+            </div>
+        `;
+        return;
+    }
+    
+    // Generate form fields from schema
+    const formFields = generateFormFieldsFromSchema(destinationType.config_schema);
+    
+    const configHtml = `
+        <div class="row g-2">
+            ${formFields}
+        </div>
+    `;
+    
+    configDiv.innerHTML = configHtml;
+}
+
+// Add destination to the list
+// Collect configuration data from form fields based on schema
+function collectDestinationConfigFromSchema(destType) {
+    const destinationType = availableDestinationTypes.find(dt => dt.type === destType);
+    
+    if (!destinationType || !destinationType.config_schema) {
+        return { config: {}, requiredFields: [] };
+    }
+    
+    const config = {};
+    const requiredFields = [];
+    const missingFields = [];
+    
+    for (const field of destinationType.config_schema.fields) {
+        const element = document.getElementById(field.name);
+        
+        if (!element) {
+            console.warn(`Field element not found: ${field.name}`);
+            continue;
+        }
+        
+        let value;
+        
+        if (field.type === 'checkbox') {
+            value = element.checked;
+        } else if (field.type === 'number') {
+            const numValue = parseFloat(element.value);
+            value = isNaN(numValue) ? undefined : numValue;
+        } else if (field.type === 'select') {
+            value = element.value || undefined;
+        } else {
+            value = element.value.trim() || undefined;
+        }
+        
+        // Handle required fields
+        if (field.required) {
+            if (field.type === 'checkbox') {
+                // For checkboxes, required means it must be checked
+                if (!value) {
+                    missingFields.push(field.label);
+                }
+            } else if (!value) {
+                missingFields.push(field.label);
+            }
+            requiredFields.push(value);
+        }
+        
+        // Only add non-undefined values to config
+        if (value !== undefined) {
+            config[field.name] = value;
+        }
+    }
+    
+    return { 
+        config, 
+        requiredFields, 
+        missingFields,
+        isValid: missingFields.length === 0 
+    };
+}
+
+// Add destination to the list
+function addDestination() {
+    const destType = document.getElementById('destinationType').value;
+    
+    if (!destType) {
+        showAlert('warning', 'Please select a destination type first');
+        return;
+    }
+    
+    // Collect configuration from dynamic form
+    const { config, isValid, missingFields } = collectDestinationConfigFromSchema(destType);
+    
+    if (!isValid) {
+        showAlert('warning', `Please fill in required fields: ${missingFields.join(', ')}`);
+        return;
+    }
+
+    if (editingDestinationId) {
+        // Update existing destination
+        const destIndex = currentDestinations.findIndex(dest => dest.id === editingDestinationId);
+        if (destIndex !== -1) {
+            const existingDestination = currentDestinations[destIndex];
+            currentDestinations[destIndex] = {
+                id: editingDestinationId,
+                type: destType,
+                config: config,
+                enabled: existingDestination.enabled // Preserve enabled state when updating
+            };
+            showAlert('success', 'Destination updated successfully');
+        } else {
+            showAlert('error', 'Destination not found for update');
+            return;
+        }
+        
+        // Reset editing mode
+        editingDestinationId = null;
+        
+        // Reset button appearance
+        const addButton = document.querySelector('button[onclick="addDestination()"]');
+        if (addButton) {
+            addButton.innerHTML = '<i class="fas fa-plus me-1"></i>Add Destination';
+            addButton.className = 'btn btn-primary';
+        }
+        
+        // Re-enable all edit buttons
+        enableAllEditButtons();
+        
+        // Remove cancel button
+        const cancelButton = document.querySelector('button[onclick="cancelDestinationEdit()"]');
+        if (cancelButton) {
+            cancelButton.remove();
+        }
+    } else {
+        // Add new destination
+        const destination = {
+            id: 'dest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9), // Generate a more unique ID
+            type: destType,
+            config: config,
+            enabled: true // New destinations are enabled by default
+        };
+        
+        currentDestinations.push(destination);
+        showAlert('success', 'Destination added successfully');
+    }
+    
+    updateDestinationsList();
+    
+    // Clear the form
+    document.getElementById('destinationType').value = '';
+    updateDestinationConfig();
+    
+    // Clear destination type selector visual state
+    const selector = document.getElementById('destinationTypeSelector');
+    if (selector) {
+        selector.querySelectorAll('.button-selector-item').forEach(item => {
+            item.classList.remove('active');
+        });
+    }
+}
+
+// Update destinations list display
+function updateDestinationsList() {
+    const listDiv = document.getElementById('destinationsList');
+    
+    if (currentDestinations.length === 0) {
+        listDiv.innerHTML = '<div class="text-muted">No destinations configured</div>';
+        return;
+    }
+
+    // Helper function to sanitize URLs by removing credentials for display
+    function sanitizeUrl(url) {
+        if (!url || typeof url !== 'string') return url;
+        
+        // Regex to match protocol://username:password@host:port/path
+        // and replace with protocol://host:port/path
+        const regex = /^(https?|rtsp|ftp):\/\/[^:\/\s]+:[^@\/\s]*@(.+)$/i;
+        const match = url.match(regex);
+        
+        if (match) {
+            return `${match[1]}://${match[2]}`;
+        }
+        
+        return url; // Return original if no credentials found
+    }
+
+    // Helper function to format config prettier
+    function formatConfig(config) {
+        const configItems = Object.entries(config).map(([key, value]) => {
+            // Format key names to be more readable
+            const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            // Sanitize URLs that might contain credentials
+            let displayValue = value;
+            if (key === 'url' || key === 'source' || (typeof value === 'string' && (value.startsWith('http') || value.startsWith('rtsp') || value.startsWith('ftp')))) {
+                displayValue = sanitizeUrl(value);
+            }
+            
+            // Use neutral/colorless badges
+            const badgeClass = 'badge bg-light text-dark border';
+            
+            return `<span class="${badgeClass} me-1 mb-1">${displayKey}: ${displayValue}</span>`;
+        });
+        
+        return `<div class="d-flex flex-wrap">${configItems.join('')}</div>`;
+    }
+    
+    const html = currentDestinations.map(dest => {
+        const configHtml = formatConfig(dest.config);
+        const enabledState = dest.enabled !== false; // Default to true if not specified
+        
+        return `
+            <div class="alert alert-info d-flex justify-content-between align-items-start py-2">
+                <div style="flex: 1;">
+                    <div class="d-flex align-items-center mb-2">
+                        <strong class="me-2">${dest.type.toUpperCase()}</strong>
+                        <label class="destination-toggle ms-auto me-2" title="Enable/Disable this destination">
+                            <input type="checkbox" 
+                                   ${enabledState ? 'checked' : ''}
+                                   onchange="toggleDestinationEnabled('${dest.id}', this.checked)">
+                            <span class="destination-slider"></span>
+                        </label>
+                        <small class="text-muted ms-1">${enabledState ? 'Enabled' : 'Disabled'}</small>
+                    </div>
+                    <div class="mt-2">${configHtml}</div>
+                </div>
+                <div class="d-flex gap-1 ms-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="editDestination('${dest.id}')" title="Edit destination">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDestination('${dest.id}')" title="Remove destination">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    listDiv.innerHTML = html;
+}
+
+// Remove destination
+function removeDestination(id) {
+    currentDestinations = currentDestinations.filter(dest => dest.id !== id);
+    updateDestinationsList();
+}
+
+// Toggle destination enabled/disabled state
+function toggleDestinationEnabled(id, enabled) {
+    const destination = currentDestinations.find(dest => dest.id === id);
+    if (destination) {
+        destination.enabled = enabled;
+        updateDestinationsList(); // Refresh to update the enabled/disabled text
+        showAlert('info', `Destination ${enabled ? 'enabled' : 'disabled'}`);
+    }
+}
+
+// Edit destination
+function editDestination(id) {
+    const destination = currentDestinations.find(dest => dest.id === id);
+    if (!destination) {
+        showAlert('error', 'Destination not found');
+        return;
+    }
+    
+    // If already editing this destination, do nothing
+    if (editingDestinationId === id) {
+        return;
+    }
+    
+    // If editing a different destination, cancel the current edit first
+    if (editingDestinationId !== null) {
+        cancelDestinationEdit();
+    }
+    
+    // Set editing mode
+    editingDestinationId = id;
+    
+    // Disable all edit buttons
+    disableAllEditButtons();
+    
+    // Select the destination type
+    selectDestinationType(destination.type);
+    
+    // Wait for the form to render, then populate it
+    setTimeout(() => {
+        populateDestinationForm(destination.type, destination.config);
+        
+        // Update the add button to show "Update"
+        const addButton = document.querySelector('button[onclick="addDestination()"]');
+        if (addButton) {
+            addButton.innerHTML = '<i class="fas fa-save me-1"></i>Update Destination';
+            addButton.className = 'btn btn-warning btn-sm';
+            
+            // Add cancel button if it doesn't exist
+            let cancelButton = document.querySelector('button[onclick="cancelDestinationEdit()"]');
+            if (!cancelButton) {
+                cancelButton = document.createElement('button');
+                cancelButton.type = 'button';
+                cancelButton.className = 'btn btn-outline-secondary btn-sm ms-2';
+                cancelButton.setAttribute('onclick', 'cancelDestinationEdit()');
+                cancelButton.innerHTML = '<i class="fas fa-times me-1"></i>Cancel';
+                addButton.parentNode.appendChild(cancelButton);
+            }
+        }
+        
+        // Scroll to the destination form
+        document.getElementById('destinationTypeSelector').scrollIntoView({ behavior: 'smooth' });
+        
+        showAlert('info', `Editing ${destination.type.toUpperCase()} destination`);
+    }, 100);
+}
+
+// Populate destination form with existing data based on schema
+function populateDestinationForm(type, config) {
+    const destinationType = availableDestinationTypes.find(dt => dt.type === type);
+    
+    if (!destinationType || !destinationType.config_schema) {
+        console.warn(`Cannot populate form for destination type: ${type}`);
+        return;
+    }
+    
+    for (const field of destinationType.config_schema.fields) {
+        const element = document.getElementById(field.name);
+        
+        if (!element) {
+            console.warn(`Field element not found: ${field.name}`);
+            continue;
+        }
+        
+        const value = config[field.name];
+        
+        if (value !== undefined) {
+            if (field.type === 'checkbox') {
+                element.checked = Boolean(value);
+            } else {
+                element.value = value;
+            }
+        } else if (field.default !== undefined) {
+            // Use default value if no config value provided
+            if (field.type === 'checkbox') {
+                element.checked = Boolean(field.default);
+            } else {
+                element.value = field.default;
+            }
+        }
+    }
+}
+
+// Cancel destination editing
+function cancelDestinationEdit() {
+    // Reset editing state
+    editingDestinationId = null;
+    
+    // Reset button appearance
+    const addButton = document.querySelector('button[onclick="addDestination()"]');
+    if (addButton) {
+        addButton.innerHTML = '<i class="fas fa-plus me-1"></i>Add Destination';
+        addButton.className = 'btn btn-primary';
+    }
+    
+    // Remove cancel button
+    const cancelButton = document.querySelector('button[onclick="cancelDestinationEdit()"]');
+    if (cancelButton) {
+        cancelButton.remove();
+    }
+    
+    // Re-enable all edit buttons
+    enableAllEditButtons();
+    
+    // Clear the form
+    document.getElementById('destinationType').value = '';
+    updateDestinationConfig();
+    
+    // Clear destination type selector visual state
+    const selector = document.getElementById('destinationTypeSelector');
+    if (selector) {
+        selector.querySelectorAll('.button-selector-item').forEach(item => {
+            item.classList.remove('active');
+        });
+    }
+    
+    showAlert('info', 'Destination editing cancelled');
+}
+
+// Helper functions to manage edit button states
+function disableAllEditButtons() {
+    const editButtons = document.querySelectorAll('button[onclick^="editDestination("]');
+    editButtons.forEach(button => {
+        button.disabled = true;
+        button.classList.add('disabled');
+    });
+    
+    // Also disable delete buttons when editing
+    const deleteButtons = document.querySelectorAll('button[onclick^="removeDestination("]');
+    deleteButtons.forEach(button => {
+        button.disabled = true;
+        button.classList.add('disabled');
+    });
+}
+
+// Enable or disable pipeline template buttons in the Templates card
+function disablePipelineTemplateButtons(disable = true) {
+    // Buttons in the Pipeline Templates card are standard <button> elements
+    // which call loadTemplate(...). We also mark dynamically created template
+    // buttons with class 'pipeline-template-button'. Disable both.
+    const staticButtons = document.querySelectorAll('#pipelineTemplatesCard button[onclick^="loadTemplate("]');
+    staticButtons.forEach(btn => {
+        btn.disabled = disable;
+        if (disable) {
+            btn.classList.add('disabled');
+        } else {
+            btn.classList.remove('disabled');
+        }
+    });
+
+    const dynamicButtons = document.querySelectorAll('.pipeline-template-button');
+    dynamicButtons.forEach(btn => {
+        if (disable) {
+            btn.classList.add('disabled');
+            btn.style.pointerEvents = 'none';
+            btn.setAttribute('aria-disabled', 'true');
+        } else {
+            btn.classList.remove('disabled');
+            btn.style.pointerEvents = '';
+            btn.removeAttribute('aria-disabled');
+        }
+    });
+
+    // If we're enabling and no dynamic buttons are present yet, retry once
+    // shortly after in case buttons are created asynchronously.
+    if (!disable && dynamicButtons.length === 0) {
+        setTimeout(() => {
+            const retryButtons = document.querySelectorAll('.pipeline-template-button');
+            retryButtons.forEach(btn => {
+                btn.classList.remove('disabled');
+                btn.style.pointerEvents = '';
+                btn.removeAttribute('aria-disabled');
+            });
+        }, 100);
+    }
+}
+
+// Toggle the top duplicated action buttons and import button visibility
+function toggleTopActionButtons(showEditMode = false) {
+    const topActions = document.getElementById('topFormActions');
+    const importBtn = document.getElementById('importPipelineBtn');
+    if (showEditMode) {
+        if (topActions) topActions.classList.remove('d-none');
+        if (importBtn) importBtn.style.display = 'none';
+    } else {
+        if (topActions) topActions.classList.add('d-none');
+        if (importBtn) importBtn.style.display = '';
+    }
+}
+
+function enableAllEditButtons() {
+    const editButtons = document.querySelectorAll('button[onclick^="editDestination("]');
+    editButtons.forEach(button => {
+        button.disabled = false;
+        button.classList.remove('disabled');
+    });
+    
+    // Also re-enable delete buttons
+    const deleteButtons = document.querySelectorAll('button[onclick^="removeDestination("]');
+    deleteButtons.forEach(button => {
+        button.disabled = false;
+        button.classList.remove('disabled');
+    });
+}
+
+// Update model info display
+function updateModelInfo() {
+    const modelId = document.getElementById('selectedModel').value;
+    const infoDiv = document.getElementById('modelInfo');
+    
+    if (!modelId) {
+        infoDiv.innerHTML = '<div class="text-muted">Select a model to see details</div>';
+        return;
+    }
+    
+    const model = availableModels.find(m => m.id === modelId);
+    if (!model) {
+        infoDiv.innerHTML = '<div class="text-muted">Model information not available</div>';
+        return;
+    }
+    
+    // Only show description if available and not empty
+    if (model.description && model.description.trim() !== '') {
+        infoDiv.innerHTML = `
+            <div class="alert alert-light py-2">
+                ${model.description}
+            </div>
+        `;
+    } else {
+        infoDiv.innerHTML = '<div class="text-muted">No description available</div>';
+    }
+}
+
+// Helper function to create upload button
+function createUploadButton() {
+    const uploadButton = document.createElement('div');
+    uploadButton.className = 'button-selector-item upload-button';
+    uploadButton.onclick = () => window.location.href = '/models';
+    uploadButton.innerHTML = `
+        <div class="icon"><i class="fas fa-plus"></i></div>
+        <div class="label">Upload</div>
+        <div class="description">Add new models</div>
+    `;
+    return uploadButton;
+}
+
+function createTemplateButton() {
+    const templateButton = document.createElement('div');
+    templateButton.className = 'button-selector-item upload-button pipeline-template-button';
+    templateButton.onclick = () => window.location.href = '/publisher';
+    templateButton.innerHTML = `
+        <div class="icon"><i class="fas fa-plus"></i></div>
+        <div class="label">Create Template</div>
+        <div class="description">Save as favorite config</div>
+    `;
+    return templateButton;
+}
+
+// Load available models
+async function loadAvailableModels() {
+    try {
+        const response = await fetch('/api/models');
+        const data = await response.json();
+        
+        if (response.ok) {
+            availableModels = Object.values(data.models);
+            
+            const selector = document.getElementById('modelSelector');
+            
+            if (availableModels.length === 0) {
+                selector.innerHTML = '';
+                
+                // Add upload button with left alignment when it's the only item
+                const uploadButton = createUploadButton();
+                uploadButton.classList.add('single-item');
+                selector.classList.add('single-item-container');
+                selector.appendChild(uploadButton);
+                return;
+            }
+            
+            selector.innerHTML = '';
+            selector.classList.remove('single-item-container'); // Remove single-item styling
+            
+            // Add model buttons
+            availableModels.forEach(model => {
+                const fileSizeMB = (model.file_size / (1024 * 1024)).toFixed(1);
+                
+                // Get icon directly from engine metadata
+                let engineIcon = 'fa-cog'; // Default fallback
+                if (availableEngineTypes && availableEngineTypes.length > 0) {
+                    const engineInfo = availableEngineTypes.find(engine => engine.type === model.engine_type);
+                    if (engineInfo && engineInfo.icon) {
+                        engineIcon = engineInfo.icon.replace('fas ', ''); // Remove 'fas ' prefix if present
+                    }
+                }
+                
+                const button = document.createElement('div');
+                button.className = 'button-selector-item';
+                button.setAttribute('data-value', model.id);
+                button.onclick = () => selectModel(model.id);
+                
+                const displayName = model.name || model.original_filename;
+                const hasCustomName = model.name && model.name !== model.original_filename;
+                
+                button.innerHTML = `
+                    <div class="icon"><i class="fas ${engineIcon}"></i></div>
+                    <div class="label" ${hasCustomName ? `title="File: ${model.original_filename}"` : ''}>${displayName}</div>
+                    <div class="description">${model.engine_type} • ${fileSizeMB}MB</div>
+                `;
+                
+                selector.appendChild(button);
+            });
+            
+            // Always add upload button at the end
+            selector.appendChild(createUploadButton());
+            
+        } else {
+            const selector = document.getElementById('modelSelector');
+            selector.innerHTML = '';
+            
+            // Add upload button with left alignment on error
+            const uploadButton = createUploadButton();
+            uploadButton.classList.add('single-item');
+            selector.classList.add('single-item-container');
+            selector.appendChild(uploadButton);
+        }
+    } catch (error) {
+        const selector = document.getElementById('modelSelector');
+        selector.innerHTML = '';
+        
+        // Add upload button with left alignment on error
+        const uploadButton = createUploadButton();
+        uploadButton.classList.add('single-item');
+        selector.classList.add('single-item-container');
+        selector.appendChild(uploadButton);
+    }
+}
+
+// Helper function to select the best available engine for templates
+function selectBestAvailableEngine(preferredEngine = 'ultralytics') {
+    // Try preferred engine first
+    if (availableEngineTypes && availableEngineTypes.length > 0) {
+        const preferred = availableEngineTypes.find(engine => engine.type === preferredEngine && engine.available);
+        if (preferred) {
+            selectInferenceEngine(preferredEngine);
+            return;
+        }
+        
+        // Fall back to first available primary engine
+        const primaryAvailable = availableEngineTypes.find(engine => engine.primary && engine.available);
+        if (primaryAvailable) {
+            selectInferenceEngine(primaryAvailable.type);
+            return;
+        }
+        
+        // Fall back to any available engine
+        const anyAvailable = availableEngineTypes.find(engine => engine.available);
+        if (anyAvailable) {
+            selectInferenceEngine(anyAvailable.type);
+            return;
+        }
+    }
+    
+    // Ultimate fallback to hardcoded selection (for backwards compatibility)
+    selectInferenceEngine(preferredEngine);
+}
+
+// Load pipeline templates
+function loadTemplate(templateName) {
+    switch (templateName) {
+        case 'webcam_detection':
+            document.getElementById('pipelineName').value = 'Webcam Object Detection';
+            document.getElementById('pipelineDescription').value = 'Real-time object detection from webcam';
+            selectFrameSource('webcam');
+            setTimeout(() => {
+                if (document.getElementById('webcamIndex')) {
+                    document.getElementById('webcamIndex').value = 0;
+                }
+            }, 100);
+            selectBestAvailableEngine('ultralytics');
+            setOptimalDeviceForTemplate('webcam_detection');
+            break;
+            
+        case 'ip_camera_monitoring':
+            document.getElementById('pipelineName').value = 'IP Camera/RTSP Monitoring';
+            document.getElementById('pipelineDescription').value = 'Monitor IP camera or RTSP stream for objects';
+            selectFrameSource('ip_camera');
+            selectBestAvailableEngine('ultralytics');
+            setOptimalDeviceForTemplate('ip_camera_monitoring');
+            break;
+            
+        case 'realsense_depth':
+            document.getElementById('pipelineName').value = 'RealSense Depth Camera';
+            document.getElementById('pipelineDescription').value = 'Real-time depth sensing with Intel RealSense';
+            selectFrameSource('realsense');
+            setTimeout(() => {
+                if (document.getElementById('realsenseWidth')) {
+                    document.getElementById('realsenseWidth').value = '1280';
+                }
+                if (document.getElementById('realsenseHeight')) {
+                    document.getElementById('realsenseHeight').value = '720';
+                }
+                if (document.getElementById('realsenseFps')) {
+                    document.getElementById('realsenseFps').value = '30';
+                }
+            }, 100);
+            selectBestAvailableEngine('ultralytics');
+            setOptimalDeviceForTemplate('realsense_depth');
+            break;
+            
+        case 'batch_processing':
+            document.getElementById('pipelineName').value = 'Batch Image Processing';
+            document.getElementById('pipelineDescription').value = 'Process folder of images';
+            selectFrameSource('image_folder');
+            setTimeout(() => {
+                // Enable auto-delete by default for batch processing
+                if (document.getElementById('imageFolderAutoDelete')) {
+                    document.getElementById('imageFolderAutoDelete').checked = true;
+                }
+            }, 100);
+            selectBestAvailableEngine('ultralytics');
+            setOptimalDeviceForTemplate('batch_processing');
+            break;
+            
+        case 'data_capture':
+            document.getElementById('pipelineName').value = 'Data Capture Pipeline';
+            document.getElementById('pipelineDescription').value = 'Capture images without inference for dataset creation';
+            selectFrameSource('webcam');
+            setTimeout(() => {
+                if (document.getElementById('webcamIndex')) {
+                    document.getElementById('webcamIndex').value = 0;
+                }
+            }, 100);
+            selectBestAvailableEngine('pass');
+            setOptimalDeviceForTemplate('data_capture');
+            break;
+    }
+    
+    showAlert('success', `Template "${templateName}" loaded`);
+}
+
+// Pipeline form submission
+document.getElementById('pipelineForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Collect all form data
+    const pipelineConfig = {
+        name: document.getElementById('pipelineName').value,
+        description: document.getElementById('pipelineDescription').value,
+        inference_enabled: document.getElementById('inferenceEngine').value === 'pass' ? false : document.getElementById('inferenceEnabled').checked,
+        frame_source: {
+            capture_type: document.getElementById('frameSourceType').value,
+            config: getFrameSourceConfig()
+        },
+        model: {
+            id: document.getElementById('selectedModel').value,
+            engine_type: document.getElementById('inferenceEngine').value,
+            device: document.getElementById('inferenceDevice').value
+        },
+        destinations: currentDestinations
+    };
+    
+    // Validate required fields
+    if (!pipelineConfig.name || !pipelineConfig.frame_source.capture_type || 
+        !pipelineConfig.model.engine_type) {
+        showAlert('error', 'Please fill in all required fields');
+        return;
+    }
+    
+    // Validate frame source configuration
+    const frameSourceType = document.getElementById('frameSourceType').value;
+    if (frameSourceType) {
+        const { isValid, missingFields } = collectFrameSourceConfigFromSchema(frameSourceType);
+        if (!isValid) {
+            showAlert('error', `Please fill in required frame source fields: ${missingFields.join(', ')}`);
+            return;
+        }
+    }
+    
+    // For non-Pass engines, model ID is required
+    if (pipelineConfig.model.engine_type !== 'pass' && !pipelineConfig.model.id) {
+        showAlert('error', 'Please select a model or use the Pass engine for data capture');
+        return;
+    }
+    
+    if (currentDestinations.length === 0) {
+        showAlert('error', 'Please configure at least one result destination');
+        return;
+    }
+    
+    try {
+        let response, result;
+        
+        if (editingPipelineId) {
+            // Update existing pipeline
+            response = await fetch(`/api/pipeline/${editingPipelineId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(pipelineConfig)
+            });
+        } else {
+            // Create new pipeline
+            response = await fetch('/api/pipeline/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(pipelineConfig)
+            });
+        }
+        
+        result = await response.json();
+        
+        if (response.ok) {
+            const action = editingPipelineId ? 'updated' : 'created';
+            showAlert('success', `Pipeline "${pipelineConfig.name}" ${action} successfully!`);
+            resetForm(true); // Skip confirmation dialog after successful save/update
+            refreshPipelines();
+        } else {
+            const action = editingPipelineId ? 'update' : 'create';
+            showAlert('error', `Failed to ${action} pipeline: ${result.error}`);
+        }
+    } catch (error) {
+        const action = editingPipelineId ? 'updating' : 'creating';
+        showAlert('error', `Error ${action} pipeline: ${error.message}`);
+    }
+});
+
+// Get frame source configuration
+function getFrameSourceConfig() {
+    const sourceType = document.getElementById('frameSourceType').value;
+    
+    if (!sourceType) {
+        return {};
+    }
+    
+    // Use schema-based config collection
+    const { config, isValid, missingFields } = collectFrameSourceConfigFromSchema(sourceType);
+    
+    if (!isValid && missingFields.length > 0) {
+        console.warn(`Missing required frame source fields: ${missingFields.join(', ')}`);
+        // Could show an alert here, but for now just log the warning
+        // The pipeline form validation will catch this
+    }
+    
+    return config;
+}
+
+
+// Edit pipeline
+async function editPipeline(pipelineId) {
+    try {
+        // Get the pipeline data
+        const pipeline = allPipelines[pipelineId];
+        if (!pipeline) {
+            showAlert('error', 'Pipeline data not found');
+            return;
+        }
+        
+        // Check if pipeline is running
+        if (pipeline.status === 'running') {
+            showAlert('warning', 'Cannot edit a running pipeline. Please stop it first.');
+            return;
+        }
+        
+        // Set edit mode
+        editingPipelineId = pipelineId;
+
+    // Disable pipeline template buttons while editing to avoid accidental template loads
+    disablePipelineTemplateButtons(true);
+
+    // Show top duplicated action buttons and hide import button
+    toggleTopActionButtons(true);
+    const importBtn = document.getElementById('importPipelineBtn');
+    if (importBtn) importBtn.style.display = 'none';
+    // Set top button text independently for edit mode
+    const topSaveText = document.getElementById('topSaveButtonText');
+    const topResetText = document.getElementById('topResetButtonText');
+    if (topSaveText) topSaveText.textContent = 'Update Pipeline';
+    if (topResetText) topResetText.textContent = 'Cancel Edit';
+        
+        // Update form title and buttons
+        document.getElementById('saveButtonText').textContent = 'Update Pipeline';
+        document.getElementById('resetButtonText').textContent = 'Cancel Edit';
+        
+        // Make submit button more prominent and reset button warning style
+        const submitButton = document.getElementById('submitButton');
+        const resetButton = document.getElementById('resetButton');
+        
+        submitButton.className = 'btn btn-warning'; // Orange/yellow for update action
+        resetButton.className = 'btn btn-outline-danger'; // Red outline for cancel action
+        
+        // Populate basic info
+        document.getElementById('pipelineName').value = pipeline.name || '';
+        document.getElementById('pipelineDescription').value = pipeline.description || '';
+        
+        // Populate frame source
+        const frameSource = pipeline.frame_source || {};
+        const sourceType = frameSource.capture_type || frameSource.type || '';
+        if (sourceType) {
+            selectFrameSource(sourceType);
+        }
+        
+        // Wait a bit for the config form to render, then populate it
+        setTimeout(() => {
+            populateFrameSourceConfig(frameSource);
+        }, 100);
+        
+        // Populate model selection
+        const model = pipeline.model || {};
+        if (model.id) {
+            selectModel(model.id);
+        }
+        
+        // Populate inference engine
+        if (model.engine_type) {
+            selectInferenceEngine(model.engine_type);
+        }
+        
+        // Set device value using button selector
+        const savedDevice = model.device || 'cpu';
+        selectDevice(savedDevice);
+        
+        document.getElementById('inferenceEnabled').checked = pipeline.inference_enabled !== false; // Default to true
+        
+        // Populate destinations
+        currentDestinations = (pipeline.destinations || []).map((dest, index) => ({
+            id: dest.id || `temp_${Date.now()}_${index}`, // Use existing ID or generate a stable temp one
+            type: dest.type,
+            config: dest.config,
+            enabled: dest.enabled !== false // Default to true if not specified
+        }));
+        updateDestinationsList();
+        
+    // No automatic scroll: keep user's viewport stable when entering edit mode
+        
+        showAlert('info', `Editing pipeline: ${pipeline.name}`);
+        
+    } catch (error) {
+        showAlert('error', `Error loading pipeline for editing: ${error.message}`);
+    }
+}
+
+// Cancel edit via the top Cancel button: immediately exit edit mode without confirmation
+function cancelEdit() {
+    // If not editing, behave like reset without confirmation
+    if (editingPipelineId === null) {
+        resetForm(false);
+        return;
+    }
+
+    // Reset form state without showing confirmation dialog
+    resetForm(true);
+
+    showAlert('info', 'Edit cancelled');
+}
+
+// Populate frame source configuration with existing data
+function populateFrameSourceConfig(frameSource) {
+    const sourceType = frameSource.capture_type || frameSource.type;
+    const config = frameSource.config || {};
+    
+    // Find the frame source type configuration schema
+    const frameSourceType = availableFrameSourceTypes.find(ft => ft.type === sourceType);
+    
+    if (!frameSourceType || !frameSourceType.config_schema) {
+        console.warn(`Cannot populate frame source config for type: ${sourceType}`);
+        return;
+    }
+    
+    // Populate form fields based on schema
+    for (const field of frameSourceType.config_schema.fields) {
+        const element = document.getElementById(field.name);
+        
+        if (!element) {
+            console.warn(`Frame source form field element not found: ${field.name}`);
+            continue;
+        }
+        
+        const value = config[field.name];
+        
+        if (value !== undefined) {
+            if (field.type === 'checkbox') {
+                element.checked = !!value;
+            } else if (field.type === 'number') {
+                element.value = value;
+            } else if (field.type === 'select') {
+                element.value = value;
+            } else {
+                element.value = value;
+            }
+        } else if (field.default !== undefined) {
+            // Set default value if no config value is provided
+            if (field.type === 'checkbox') {
+                element.checked = !!field.default;
+            } else {
+                element.value = field.default;
+            }
+        }
+    }
+}
+
+// Reset form
+function resetForm(skipConfirmation = false) {
+    const isEditing = editingPipelineId !== null;
+    
+    if (!skipConfirmation) {
+        const message = isEditing ? 
+            'Are you sure you want to cancel editing? All unsaved changes will be lost.' :
+            'Are you sure you want to reset the form? All unsaved changes will be lost.';
+        
+        if (!confirm(message)) {
+            return;
+        }
+    }
+    
+    // Reset form fields
+    document.getElementById('pipelineForm').reset();
+    currentDestinations = [];
+    updateDestinationsList();
+    updateFrameSourceConfig();
+    updateDestinationConfig();
+    updateModelInfo();
+    resetInferenceEngineSelector(); // Reset inference engine selector
+    
+    // Reset edit modes
+    editingPipelineId = null;
+    editingDestinationId = null;
+    
+    // Reset destination add button if it was in edit mode
+    const addButton = document.querySelector('button[onclick="addDestination()"]');
+    if (addButton) {
+        addButton.innerHTML = '<i class="fas fa-plus me-1"></i>Add Destination';
+        addButton.className = 'btn btn-primary';
+    }
+    
+    // Remove cancel button if it exists
+    const cancelButton = document.querySelector('button[onclick="cancelDestinationEdit()"]');
+    if (cancelButton) {
+        cancelButton.remove();
+    }
+    
+    // Re-enable all edit buttons
+    enableAllEditButtons();
+    
+    document.getElementById('saveButtonText').textContent = 'Save Pipeline';
+    document.getElementById('resetButtonText').textContent = 'Reset';
+    
+    // Restore original button styling
+    const submitButton = document.getElementById('submitButton');
+    const resetButton = document.getElementById('resetButton');
+    
+    submitButton.className = 'btn btn-primary'; // Blue for save action
+    resetButton.className = 'btn btn-outline-secondary'; // Gray outline for reset action
+    
+    if (isEditing && !skipConfirmation) {
+        showAlert('info', 'Edit mode cancelled');
+    }
+
+    // Make sure pipeline templates and top action buttons are restored after resetting
+    disablePipelineTemplateButtons(false);
+    toggleTopActionButtons(false);
+}
+
+// Import pipeline function
+function importPipeline() {
+    const fileInput = document.getElementById('pipelineImportInput');
+    
+    // Set up event listener for file selection
+    fileInput.onchange = async function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // Validate file type
+        if (!file.name.endsWith('.zip')) {
+            showAlert('error', 'Please select a ZIP file containing a pipeline export');
+            return;
+        }
+        
+        try {
+            // Show loading state
+            showAlert('info', 'Importing pipeline...');
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Upload and import
+            const response = await fetch('/api/pipeline/import', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                showAlert('success', `Pipeline "${result.pipeline_name}" imported successfully`);
+                
+                // Check if we want to edit the imported pipeline
+                const editImported = confirm(`Pipeline imported successfully! Would you like to edit it now?`);
+                if (editImported) {
+                    // Load the imported pipeline for editing
+                    await refreshPipelines(); // Refresh the pipelines list first
+                    setTimeout(() => {
+                        editPipeline(result.pipeline_id);
+                    }, 500);
+                } else {
+                    // Just refresh to show the new pipeline in the list
+                    refreshPipelines();
+                }
+            } else {
+                showAlert('error', `Failed to import pipeline: ${result.error}`);
+            }
+            
+        } catch (error) {
+            showAlert('error', `Error importing pipeline: ${error.message}`);
+        }
+        
+        // Reset file input
+        fileInput.value = '';
+    };
+    
+    // Trigger file selection dialog
+    fileInput.click();
+}
+
+// Refresh pipelines list
+async function refreshPipelines() {
+    try {
+        const response = await fetch('/api/pipelines');
+        const data = await response.json();
+        
+        if (response.ok) {
+            updatePipelinesList(data.pipelines);
+            updatePipelineStats(data.stats);
+        } else {
+            showAlert('error', 'Failed to load pipelines: ' + data.error);
+        }
+    } catch (error) {
+        showAlert('error', 'Error loading pipelines: ' + error.message);
+    }
+}
+
+// Update pipelines list display
+function updatePipelinesList(pipelines) {
+    const listDiv = document.getElementById('availablePipelines');
+
+    // Store pipeline data for editing
+    allPipelines = {};
+    if (pipelines && Array.isArray(pipelines)) {
+        pipelines.forEach(pipeline => {
+            allPipelines[pipeline.id] = pipeline;
+        });
+    }
+    
+    if (!pipelines || pipelines.length === 0) {
+        listDiv.innerHTML = '<div class="text-muted"><i class="fas fa-info-circle me-2"></i>No available pipelines</div>';
+        return;
+    }
+    
+    const html = pipelines.map(pipeline => `
+        <div class="card mb-2">
+            <div class="card-body p-2">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="card-title mb-1">${pipeline.name}</h6>
+                        <small class="text-muted">
+                            ${pipeline.frame_source?.capture_type || pipeline.frame_source?.type || 'Unknown'} → ${pipeline.model?.engine_type || 'Unknown'}<br>
+                            Status: <span class="badge bg-${pipeline.status === 'running' ? 'success' : 'secondary'}">${pipeline.status}</span>
+                        </small>
+                    </div>
+                    <div class="btn-group-horizontal btn-group-sm">
+                        <button class="btn btn-outline-${pipeline.status === 'running' ? 'warning' : 'success'} btn-sm" 
+                                onclick="${pipeline.status === 'running' ? 'stopPipeline' : 'startPipeline'}('${pipeline.id}')" 
+                                title="${pipeline.status === 'running' ? 'Stop' : 'Start'} pipeline">
+                            <i class="fas fa-${pipeline.status === 'running' ? 'stop' : 'play'}"></i>
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" 
+                                onclick="editPipeline('${pipeline.id}')" 
+                                ${pipeline.status === 'running' ? 'disabled' : ''}
+                                title="${pipeline.status === 'running' ? 'Cannot edit running pipeline' : 'Edit pipeline'}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" 
+                                onclick="previewPipeline('${pipeline.id}')" 
+                                ${pipeline.status !== 'running' ? 'disabled' : ''}
+                                title="${pipeline.status === 'running' ? 'Preview pipeline output' : 'Pipeline must be running to preview'}">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" 
+                                onclick="duplicatePipeline('${pipeline.id}')" 
+                                title="Duplicate pipeline">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" 
+                                onclick="exportPipeline('${pipeline.id}')" 
+                                title="Export pipeline">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" 
+                                onclick="deletePipeline('${pipeline.id}')" 
+                                title="Delete pipeline">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    listDiv.innerHTML = html;
+}
+
+// Update pipeline stats
+function updatePipelineStats(stats) {
+    if (stats) {
+        document.getElementById('totalPipelines').textContent = stats.total || 0;
+        document.getElementById('activePipelineCount').textContent = stats.active || 0;
+        document.getElementById('avgFPS').textContent = (stats.avg_fps || 0).toFixed(1);
+        document.getElementById('avgLatency').textContent = Math.round(stats.avg_latency || 0) + 'ms';
+    }
+}
+
+// Start pipeline
+async function startPipeline(pipelineId) {
+    try {
+        const response = await fetch(`/api/pipeline/${pipelineId}/start`, {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showAlert('success', 'Pipeline started successfully');
+            refreshPipelines();
+        } else {
+            showAlert('error', `Failed to start pipeline: ${result.error}`);
+        }
+    } catch (error) {
+        showAlert('error', `Error starting pipeline: ${error.message}`);
+    }
+}
+
+// Stop pipeline
+async function stopPipeline(pipelineId) {
+    try {
+        const response = await fetch(`/api/pipeline/${pipelineId}/stop`, {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showAlert('success', 'Pipeline stopped successfully');
+            refreshPipelines();
+        } else {
+            showAlert('error', `Failed to stop pipeline: ${result.error}`);
+        }
+    } catch (error) {
+        showAlert('error', `Error stopping pipeline: ${error.message}`);
+    }
+}
+
+// Delete pipeline
+async function deletePipeline(pipelineId) {
+    if (confirm('Are you sure you want to delete this pipeline? This action cannot be undone.')) {
+        try {
+            const response = await fetch(`/api/pipeline/${pipelineId}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                showAlert('success', 'Pipeline deleted successfully');
+                refreshPipelines();
+            } else {
+                showAlert('error', `Failed to delete pipeline: ${result.error}`);
+            }
+        } catch (error) {
+            showAlert('error', `Error deleting pipeline: ${error.message}`);
+        }
+    }
+}
+
+// Duplicate pipeline
+async function duplicatePipeline(pipelineId) {
+    try {
+        const pipeline = allPipelines[pipelineId];
+        if (!pipeline) {
+            showAlert('error', 'Pipeline not found');
+            return;
+        }
+
+        // Generate a unique name for the duplicate
+        const duplicateName = generateDuplicateName(pipeline.name);
+        
+        // Create the duplicate configuration
+        const duplicateConfig = {
+            name: duplicateName,
+            description: pipeline.description ? `${pipeline.description} (Copy)` : 'Duplicated pipeline',
+            inference_enabled: pipeline.inference_enabled,
+            frame_source: { ...pipeline.frame_source },
+            model: { ...pipeline.model },
+            destinations: pipeline.destinations ? [...pipeline.destinations] : []
+        };
+
+        const response = await fetch('/api/pipeline/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(duplicateConfig)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showAlert('success', `Pipeline "${duplicateName}" duplicated successfully`);
+            refreshPipelines();
+        } else {
+            showAlert('error', `Failed to duplicate pipeline: ${result.error}`);
+        }
+    } catch (error) {
+        showAlert('error', `Error duplicating pipeline: ${error.message}`);
+    }
+}
+
+// Helper function to generate duplicate name with number suffix
+function generateDuplicateName(originalName) {
+    const existingNames = Object.values(allPipelines).map(p => p.name);
+    
+    // Check if name already has a number suffix
+    const match = originalName.match(/^(.+?)\s*\((\d+)\)$/);
+    
+    let baseName, startNumber;
+    if (match) {
+        baseName = match[1].trim();
+        startNumber = parseInt(match[2]);
+    } else {
+        baseName = originalName;
+        startNumber = 0;
+    }
+    
+    // Find the next available number
+    let counter = startNumber;
+    let newName;
+    
+    do {
+        counter++;
+        newName = `${baseName} (${counter})`;
+    } while (existingNames.includes(newName));
+    
+    return newName;
+}
+
+// Export pipeline function
+async function exportPipeline(pipelineId) {
+    try {
+        const pipeline = allPipelines[pipelineId];
+        if (!pipeline) {
+            showAlert('error', 'Pipeline not found');
+            return;
+        }
+        
+        // Show loading state
+        showAlert('info', 'Preparing pipeline export...');
+        
+        // Create a temporary link to download the file
+        const response = await fetch(`/api/pipeline/${pipelineId}/export`);
+        
+        if (!response.ok) {
+            const result = await response.json();
+            showAlert('error', `Failed to export pipeline: ${result.error}`);
+            return;
+        }
+        
+        // Get the filename from the response headers or use a default
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `${pipeline.name.replace(/[^a-z0-9]/gi, '_')}_export.zip`;
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename="([^"]+)"/);
+            if (match) {
+                filename = match[1];
+            }
+        }
+        
+        // Create blob and download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        showAlert('success', `Pipeline "${pipeline.name}" exported successfully`);
+        
+    } catch (error) {
+        showAlert('error', `Error exporting pipeline: ${error.message}`);
+    }
+}
+
+// Preview pipeline functionality
+function previewPipeline(pipelineId) {
+    try {
+        // Get pipeline info
+        const pipeline = allPipelines[pipelineId];
+        if (!pipeline) {
+            showAlert('error', 'Pipeline not found');
+            return;
+        }
+        
+        if (pipeline.status !== 'running') {
+            showAlert('warning', 'Pipeline must be running to preview');
+            return;
+        }
+        
+        // Update modal title
+        document.getElementById('previewPipelineName').textContent = pipeline.name;
+        
+        // Set up the stream
+        const streamImg = document.getElementById('previewStream');
+        const statusDiv = document.getElementById('previewStatus');
+        
+        // Set the stream URL with a timestamp to prevent caching
+        const streamUrl = `/api/pipeline/${pipelineId}/stream?t=${Date.now()}`;
+        streamImg.src = streamUrl;
+        
+        // Handle stream load events
+        streamImg.onload = function() {
+            statusDiv.innerHTML = '<small class="text-success"><i class="fas fa-circle me-1"></i>Live stream active</small>';
+        };
+        
+        streamImg.onerror = function() {
+            statusDiv.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>Stream unavailable</small>';
+        };
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+        modal.show();
+        
+        // Clean up when modal is closed
+        document.getElementById('previewModal').addEventListener('hidden.bs.modal', function() {
+            streamImg.src = '';
+            statusDiv.innerHTML = '<small class="text-muted">Stream stopped</small>';
+        }, { once: true });
+        
+    } catch (error) {
+        showAlert('error', `Error opening preview: ${error.message}`);
+    }
+}
+
+function toggleFullscreen() {
+    const streamImg = document.getElementById('previewStream');
+    
+    if (!document.fullscreenElement) {
+        streamImg.requestFullscreen().catch(err => {
+            showAlert('error', `Error attempting to enable fullscreen: ${err.message}`);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+// Pipeline Favorites Management
+let pipelineFavoriteConfigs = [];
+
+// Load favorite configurations for pipeline
+async function loadPipelineFavorites() {
+    try {
+        const response = await fetch('/api/publisher/favorites');
+        if (response.ok) {
+            const data = await response.json();
+            pipelineFavoriteConfigs = data.favorites || [];
+            updatePipelineFavoritesSelector();
+        }
+    } catch (error) {
+        console.error('Failed to load favorite configs:', error);
+        const selector = document.getElementById('favoriteConfigSelector');
+        selector.innerHTML = '';
+        
+        // Add create template button with left alignment on error
+        const templateButton = createTemplateButton();
+        templateButton.classList.add('single-item');
+        selector.classList.add('single-item-container');
+        selector.appendChild(templateButton);
+    }
+}
+
+// Update favorites selector in pipeline
+function updatePipelineFavoritesSelector() {
+    const selector = document.getElementById('favoriteConfigSelector');
+    
+    if (pipelineFavoriteConfigs.length === 0) {
+        selector.innerHTML = '';
+        
+        // Add create template button with left alignment when it's the only item
+        const templateButton = createTemplateButton();
+        templateButton.classList.add('single-item');
+        selector.classList.add('single-item-container');
+        selector.appendChild(templateButton);
+        return;
+    }
+    
+    selector.innerHTML = '';
+    selector.classList.remove('single-item-container'); // Remove single-item styling
+    
+    // Add favorite options
+    pipelineFavoriteConfigs.forEach(fav => {
+        // Find the destination type info from the available types
+        const destType = availableDestinationTypes.find(d => d.type === fav.type);
+        const destinationIcon = destType ? destType.icon : 'fas fa-cog';
+        
+        const button = document.createElement('div');
+        button.className = 'button-selector-item';
+        button.setAttribute('data-value', fav.id);
+        button.onclick = () => selectFavoriteConfig(fav.id);
+        
+        button.innerHTML = `
+            <div class="icon"><i class="${destinationIcon}"></i></div>
+            <div class="label">${fav.name}</div>
+            <div class="description">${fav.type.toUpperCase()} Configuration</div>
+        `;
+        
+        selector.appendChild(button);
+    });
+    
+    // Always add create template button at the end
+    selector.appendChild(createTemplateButton());
+}
+
+// Load a favorite configuration in pipeline
+function loadFavoriteInPipeline() {
+    const favoriteId = document.getElementById('favoriteConfigSelect').value;
+    
+    if (!favoriteId) {
+        // Clear destinations when clearing selection
+        currentDestinations = [];
+        updateDestinationsList();
+        return;
+    }
+    
+    const favorite = pipelineFavoriteConfigs.find(f => f.id === favoriteId);
+    if (!favorite) {
+        showAlert('error', 'Favorite configuration not found');
+        return;
+    }
+    
+    // Set the destination type value without highlighting destination type buttons
+    document.getElementById('destinationType').value = favorite.type;
+    
+    // Update the destination configuration form for this type
+    updateDestinationConfig();
+    
+    // Wait a bit for the form to render, then populate it
+    setTimeout(() => {
+        populatePipelineDestinationForm(favorite.type, favorite.config);
+        showAlert('success', `Loaded favorite: ${favorite.name}`);
+    }, 100);
+}
+
+// Populate destination form in pipeline with favorite data
+function populatePipelineDestinationForm(type, config) {
+    // Use the same dynamic function as the main destination form
+    populateDestinationForm(type, config);
+}
+
+// Global variable to store destination types with their schemas
+let availableDestinationTypes = [];
+
+// Load available destination types
+async function loadAvailableDestinationTypes() {
+    try {
+        const response = await fetch('/api/publisher/types');
+        if (response.ok) {
+            const data = await response.json();
+            availableDestinationTypes = data.destination_types; // Store for later use
+            updateDestinationTypeSelector(data.destination_types);
+            updateDestinationQuickSearchBadges(data.destination_types);
+            // Update favorites selector now that destination types are loaded
+            updatePipelineFavoritesSelector();
+        } else {
+            console.error('Failed to load destination types');
+        }
+    } catch (error) {
+        console.error('Error loading destination types:', error);
+    }
+}
+
+// Update destination type selector with available types
+function updateDestinationTypeSelector(destinationTypes) {
+    const selector = document.getElementById('destinationTypeSelector');
+    
+    // Sort: primary types first, then alphabetically by name
+    const sortedTypes = destinationTypes.sort((a, b) => {
+        if (a.primary !== b.primary) {
+            return b.primary - a.primary; // Primary first
+        }
+        return a.name.localeCompare(b.name);
+    });
+    
+    const html = sortedTypes.map(type => {
+        const availabilityClass = type.available ? '' : ' disabled';
+        const availabilityTitle = type.available ? '' : ` title="Not available: ${type.error || 'Dependencies missing'}"`;
+        
+        return `
+            <div class="button-selector-item${availabilityClass}" data-value="${type.type}" 
+                 onclick="${type.available ? `selectDestinationType('${type.type}')` : ''}"${availabilityTitle}>
+                <div class="icon"><i class="${type.icon}"></i></div>
+                <div class="label">${type.name}</div>
+                <div class="description">${type.description}</div>
+                ${!type.available ? '<div class="text-muted"><small>Dependencies missing</small></div>' : ''}
+            </div>
+        `;
+    }).join('');
+    
+    selector.innerHTML = html;
+}
+
+// Update quick search badges based on available destination types
+function updateDestinationQuickSearchBadges(destinationTypes) {
+    const container = document.querySelector('#destinationFilter').closest('.filter-container');
+    const badgesContainer = container.querySelector('.quick-search-badges');
+    
+    // Get available primary types for quick search
+    const primaryTypes = destinationTypes
+        .filter(type => type.available && type.primary)
+        .slice(0, 6) // Limit to 6 badges
+        .map(type => type.type);
+    
+    const html = primaryTypes.map(type => 
+        `<span class="quick-search-badge" onclick="quickSearch('destinationFilter', 'destinationTypeSelector', '${type}')">${type}</span>`
+    ).join('');
+    
+    badgesContainer.innerHTML = html;
+}
+
+// Global variable to store available engine types
+let availableEngineTypes = [];
+
+// Load available inference engines
+async function loadAvailableEngineTypes() {
+    try {
+        const response = await fetch('/api/inference/engines');
+        if (response.ok) {
+            const data = await response.json();
+            availableEngineTypes = data.engine_types; // Store for later use
+            updateInferenceEngineSelector(data.engine_types);
+            updateModelQuickSearchBadges(data.engine_types);
+        } else {
+            console.error('Failed to load engine types');
+        }
+    } catch (error) {
+        console.error('Error loading engine types:', error);
+    }
+}
+
+// Global variable to store available frame source types
+let availableFrameSourceTypes = [];
+
+// Load available frame source types
+async function loadAvailableFrameSourceTypes() {
+    try {
+        const response = await fetch('/api/frame-sources');
+        if (response.ok) {
+            const data = await response.json();
+            availableFrameSourceTypes = data.frame_sources; // Store for later use
+            updateFrameSourceSelector(data.frame_sources);
+            updateFrameSourceQuickSearchBadges(data.frame_sources);
+            
+            // Show info message if using fallback sources
+            if (data.fallback) {
+                console.info('Using fallback frame sources - FrameSource module not available');
+                showFrameSourceInfo('Using basic frame sources. Install FrameSource module for advanced sources.');
+            }
+        } else {
+            console.error('Failed to load frame source types');
+            showFrameSourceError('Failed to load frame source types');
+        }
+    } catch (error) {
+        console.error('Error loading frame source types:', error);
+        showFrameSourceError(`Error loading frame sources: ${error.message}`);
+    }
+}
+
+// Update inference engine selector with available types
+function updateInferenceEngineSelector(engineTypes) {
+    const selector = document.getElementById('inferenceEngineSelector');
+    
+    // Sort: primary types first, then alphabetically by name
+    const sortedTypes = engineTypes.sort((a, b) => {
+        if (a.primary !== b.primary) {
+            return b.primary - a.primary; // Primary first
+        }
+        return a.name.localeCompare(b.name);
+    });
+    
+    const html = sortedTypes.map(type => {
+        const availabilityClass = type.available ? '' : ' disabled';
+        const availabilityTitle = type.available ? '' : ` title="Not available: ${type.error || 'Dependencies missing'}"`;
+        
+        return `
+            <div class="button-selector-item${availabilityClass}" data-value="${type.type}" 
+                 onclick="${type.available ? `selectInferenceEngine('${type.type}')` : ''}"${availabilityTitle}>
+                <div class="icon"><i class="${type.icon}"></i></div>
+                <div class="label">${type.name}</div>
+                <div class="description">${type.description}</div>
+                ${!type.available ? '<div class="text-muted"><small>Dependencies missing</small></div>' : ''}
+            </div>
+        `;
+    }).join('');
+    
+    selector.innerHTML = html;
+}
+
+// Update quick search badges based on available engine types
+function updateModelQuickSearchBadges(engineTypes) {
+    const container = document.querySelector('#modelFilter').closest('.filter-container');
+    const badgesContainer = container.querySelector('.quick-search-badges');
+    
+    // Get available primary types for quick search
+    const primaryTypes = engineTypes
+        .filter(type => type.available && type.primary)
+        .slice(0, 4) // Limit to 4 badges
+        .map(type => type.type);
+    
+    // Add some additional helpful search terms
+    const additionalBadges = ['yolo', 'pose'];
+    
+    const engineBadges = primaryTypes.map(type => 
+        `<span class="quick-search-badge" onclick="quickSearch('modelFilter', 'modelSelector', '${type}')">${type}</span>`
+    ).join('');
+    
+    const additionalBadgeHtml = additionalBadges.map(term => 
+        `<span class="quick-search-badge" onclick="quickSearch('modelFilter', 'modelSelector', '${term}')">${term}</span>`
+    ).join('');
+    
+    badgesContainer.innerHTML = engineBadges + additionalBadgeHtml;
+}
+
+// Update frame source selector with available types
+function updateFrameSourceSelector(frameSourceTypes) {
+    const selector = document.getElementById('frameSourceSelector');
+    
+    // Sort: primary types first, then alphabetically by name
+    const sortedTypes = frameSourceTypes.sort((a, b) => {
+        // if (a.primary !== b.primary) {
+        //     return b.primary - a.primary; // Primary first
+        // }
+        return a.name.localeCompare(b.name);
+    });
+    
+    const html = sortedTypes.map(type => {
+        const availabilityClass = type.available ? '' : ' disabled';
+        const availabilityTitle = type.available ? '' : ` title="Not available: ${type.error || 'Dependencies missing'}"`;
+        
+        return `
+            <div class="button-selector-item${availabilityClass}" data-value="${type.type}" 
+                 onclick="${type.available ? `selectFrameSource('${type.type}')` : ''}"${availabilityTitle}>
+                <div class="icon"><i class="${type.icon}"></i></div>
+                <div class="label">${type.name}</div>
+                <div class="description">${type.description}</div>
+                ${!type.available ? '<div class="text-muted"><small>Dependencies missing</small></div>' : ''}
+            </div>
+        `;
+    }).join('');
+    
+    selector.innerHTML = html || '<div class="text-muted p-3">No frame sources available</div>';
+}
+
+// Update quick search badges for frame sources
+function updateFrameSourceQuickSearchBadges(frameSourceTypes) {
+    const container = document.querySelector('#frameSourceFilter').closest('.filter-container');
+    const badgesContainer = container.querySelector('.quick-search-badges');
+    
+    // Get available primary types for quick search
+    const primaryTypes = frameSourceTypes
+        .filter(type => type.available && type.primary)
+        .slice(0, 3) // Limit to 3 badges
+        .map(type => type.type);
+    
+    // Add some helpful search terms based on all types (available and unavailable)
+    const searchTerms = [];
+    const allTypes = frameSourceTypes.map(type => type.type);
+    
+    if (allTypes.some(type => ['webcam', 'basler', 'ximea', 'realsense', 'huateng'].includes(type))) {
+        searchTerms.push('camera');
+    }
+    if (allTypes.some(type => ['video_file', 'image_folder'].includes(type))) {
+        searchTerms.push('file');
+    }
+    if (allTypes.includes('ip_camera')) {
+        searchTerms.push('ip');
+    }
+    
+    const badgesHtml = searchTerms.map(term => 
+        `<span class="quick-search-badge" onclick="quickSearch('frameSourceFilter', 'frameSourceSelector', '${term}')">${term}</span>`
+    ).join('');
+    
+    badgesContainer.innerHTML = badgesHtml;
+}
+
+// Show error message in frame source selector
+function showFrameSourceError(message) {
+    const selector = document.getElementById('frameSourceSelector');
+    if (selector) {
+        selector.innerHTML = `
+            <div class="alert alert-warning" role="alert">
+                <i class="fas fa-exclamation-triangle"></i>
+                ${message}
+                <br><button class="btn btn-sm btn-outline-primary mt-2" onclick="loadAvailableFrameSourceTypes()">
+                    <i class="fas fa-redo"></i> Retry
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Show info message above frame source selector  
+function showFrameSourceInfo(message) {
+    // Create or update info banner above the selector
+    const selectorContainer = document.getElementById('frameSourceSelector').parentElement;
+    let infoBanner = selectorContainer.querySelector('.frame-source-info-banner');
+    
+    if (!infoBanner) {
+        infoBanner = document.createElement('div');
+        infoBanner.className = 'frame-source-info-banner alert alert-info alert-dismissible fade show mb-2';
+        infoBanner.style.fontSize = '0.875rem';
+        selectorContainer.insertBefore(infoBanner, document.getElementById('frameSourceSelector'));
+    }
+    
+    infoBanner.innerHTML = `
+        <i class="fas fa-info-circle"></i>
+        ${message}
+        <button type="button" class="btn-close btn-close-sm" onclick="this.parentElement.remove()"></button>
+    `;
+}
+
+// Check if a frame source type is available
+function isFrameSourceAvailable(sourceType) {
+    return availableFrameSourceTypes.some(type => type.type === sourceType && type.available);
+}
+
+// Get frame source metadata
+function getFrameSourceMetadata(sourceType) {
+    return availableFrameSourceTypes.find(type => type.type === sourceType);
+}
+
+// Discover devices for the currently selected frame source
+async function discoverDevicesForSelectedSource() {
+    const sourceType = document.getElementById('frameSourceType').value;
+    
+    if (!sourceType) {
+        showAlert('warning', 'Please select a frame source type first');
+        return;
+    }
+    
+    const discoverBtn = document.getElementById('discoverDevicesBtn');
+    const originalHtml = discoverBtn.innerHTML;
+    
+    // Show loading state
+    discoverBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Discovering...';
+    discoverBtn.disabled = true;
+    
+    try {
+        // Call the discovery API endpoint for the specific source type
+        const response = await fetch(`/api/frame-sources/${sourceType}/discover`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            
+            if (result.success && result.devices && result.devices.length > 0) {
+                // Store discovered devices for this source type
+                if (!window.discoveredDevices) {
+                    window.discoveredDevices = {};
+                }
+                window.discoveredDevices[sourceType] = result.devices;
+                
+                // Display all discovered devices in the info box
+                displayAllDevicesInfo(sourceType, result.devices);
+                
+                showAlert('success', `Discovered ${result.devices.length} device(s) for ${sourceType}`);
+            } else {
+                displayAllDevicesInfo(sourceType, []);
+                showAlert('info', `No devices found for ${sourceType}`);
+            }
+        } else {
+            const error = await response.json();
+            showAlert('error', `Discovery failed: ${error.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Error during device discovery:', error);
+        showAlert('error', `Discovery error: ${error.message}`);
+    } finally {
+        // Restore button state
+        discoverBtn.innerHTML = originalHtml;
+        discoverBtn.disabled = false;
+    }
+}
+
+// Show/hide the discover devices box based on selected frame source
+function toggleDiscoverDevicesButton(sourceType) {
+    const infoBox = document.getElementById('discoveredDeviceInfo');
+    const infoContent = document.getElementById('discoveredDeviceInfoContent');
+    
+    // Show box for source types that support device discovery
+    const supportedTypes = ['webcam', 'audio_spectrogram', 'basler', 'ximea', 'realsense', 'huateng'];
+    
+    if (sourceType && supportedTypes.includes(sourceType)) {
+        infoBox.style.display = 'block';
+        // Reset content to initial state when source type changes
+        infoContent.innerHTML = '<div class="text-muted">Click "Discover" to find available devices</div>';
+    } else {
+        infoBox.style.display = 'none';
+    }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', async function() {
+    resetInferenceEngineSelector(); // Initialize engine selector to default state
+    loadAvailableDevices();
+    loadAvailableModels();
+    loadPipelineFavorites();
+    loadAvailableDestinationTypes(); // Load destination types dynamically
+    loadAvailableEngineTypes(); // Load inference engine types dynamically
+    loadAvailableFrameSourceTypes(); // Load frame source types dynamically
+    
+    // Load pipelines and check for edit parameter
+    await refreshPipelines();
+    
+    // Check for edit parameter in URL after pipelines are loaded
+    const urlParams = new URLSearchParams(window.location.search);
+    const editPipelineId = urlParams.get('edit');
+    
+    if (editPipelineId) {
+        // Check if pipeline exists and trigger edit
+        if (allPipelines[editPipelineId]) {
+            // Small delay to ensure all UI elements are rendered
+            setTimeout(() => {
+                editPipeline(editPipelineId);
+                // Clear the URL parameter to avoid re-triggering on refresh
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, newUrl);
+            }, 500);
+        } else {
+            showAlert('error', 'Pipeline not found or access denied');
+            // Clear the URL parameter
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+        }
+    }
+});
+
+
+
+
+
+// Helper function to display all discovered devices in the info box
+function displayAllDevicesInfo(sourceType, devicesArray) {
+    console.log('displayAllDevicesInfo called with:', { sourceType, devicesArray });
+    
+    const infoBox = document.getElementById('discoveredDeviceInfo');
+    const infoContent = document.getElementById('discoveredDeviceInfoContent');
+    
+    if (!infoBox || !infoContent) {
+        console.log('Device info box not found');
+        return;
+    }
+    
+    // Show the info box
+    infoBox.style.display = 'block';
+    
+    // Match the height of the configuration section
+    setTimeout(() => {
+        const configSection = document.getElementById('frameSourceConfig');
+        if (configSection) {
+            const configHeight = configSection.offsetHeight;
+            if (configHeight > 200) { // Only set if config is taller than minimum
+                infoBox.style.maxHeight = `${configHeight}px`;
+            }
+        }
+    }, 100);
+    
+    if (!devicesArray || devicesArray.length === 0) {
+        infoContent.innerHTML = '<div class="text-muted">No devices discovered</div>';
+        return;
+    }
+    
+    // Define which properties to show for each source type
+    const displayMappings = {
+        'webcam': [
+            { key: 'name', label: 'Name' },
+            { key: 'index', label: 'Index' },
+            { key: 'id', label: 'ID' },
+            { key: 'width', label: 'Width' },
+            { key: 'height', label: 'Height' },
+            { key: 'fps', label: 'FPS' },
+            { key: 'backend', label: 'Backend' }
+        ],
+        'audio_spectrogram': [
+            { key: 'name', label: 'Name' },
+            { key: 'device_id', label: 'Device ID' },
+            { key: 'id', label: 'ID' },
+            { key: 'index', label: 'Index' },
+            { key: 'sample_rate', label: 'Sample Rate' },
+            { key: 'channels', label: 'Channels' },
+            { key: 'max_input_channels', label: 'Max Channels' }
+        ],
+        'basler': [
+            { key: 'name', label: 'Name' },
+            { key: 'model_name', label: 'Model' },
+            { key: 'serial_number', label: 'Serial' },
+            { key: 'device_id', label: 'Device ID' },
+            { key: 'vendor', label: 'Vendor' }
+        ],
+        'ximea': [
+            { key: 'name', label: 'Name' },
+            { key: 'model_name', label: 'Model' },
+            { key: 'serial_number', label: 'Serial' },
+            { key: 'device_id', label: 'Device ID' },
+            { key: 'vendor', label: 'Vendor' }
+        ],
+        'realsense': [
+            { key: 'name', label: 'Name' },
+            { key: 'serial_number', label: 'Serial' },
+            { key: 'product_id', label: 'Product ID' },
+            { key: 'firmware_version', label: 'Firmware' }
+        ]
+    };
+    
+    // Get the display mapping for this source type, or use a generic one
+    const fieldsToShow = displayMappings[sourceType] || [
+        { key: 'name', label: 'Name' },
+        { key: 'id', label: 'ID' },
+        { key: 'device_id', label: 'Device ID' },
+        { key: 'index', label: 'Index' },
+        { key: 'serial_number', label: 'Serial' }
+    ];
+    
+    // Build HTML for all devices
+    let html = '';
+    
+    devicesArray.forEach((deviceData, deviceIndex) => {
+        // Create device card
+        const deviceName = deviceData.name || `Device ${deviceData.id || deviceData.index || deviceIndex}`;
+        
+        // Choose appropriate icon based on source type
+        let deviceIcon = 'fa-video'; // default
+        if (sourceType === 'webcam') {
+            deviceIcon = 'fa-video';
+        } else if (sourceType === 'audio_spectrogram') {
+            deviceIcon = 'fa-microphone';
+        } else if (sourceType === 'basler' || sourceType === 'ximea') {
+            deviceIcon = 'fa-camera';
+        } else if (sourceType === 'realsense') {
+            deviceIcon = 'fa-cube';
+        }
+        
+        html += `
+            <div class="device-card">
+                <div class="device-card-header">
+                    <i class="fas ${deviceIcon} me-1"></i>${deviceName}
+                </div>
+                <div class="device-card-body">
+        `;
+        
+        // Add device properties
+        let hasProps = false;
+        fieldsToShow.forEach(field => {
+            const value = deviceData[field.key];
+            if (value !== undefined && value !== null && value !== '') {
+                hasProps = true;
+                // Format the value nicely
+                let displayValue = String(value);
+                if (typeof value === 'number') {
+                    displayValue = value.toLocaleString();
+                } else if (typeof value === 'boolean') {
+                    displayValue = value ? 'Yes' : 'No';
+                }
+                
+                html += `
+                    <div class="device-info-item">
+                        <span class="device-info-label">${field.label}:</span>
+                        <span class="device-info-value">${displayValue}</span>
+                    </div>
+                `;
+            }
+        });
+        
+        // If no specific fields were found, show all available data
+        if (!hasProps) {
+            Object.entries(deviceData).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '' && 
+                    typeof value !== 'object') { // Skip complex objects
+                    
+                    // Format key name nicely
+                    const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    
+                    html += `
+                        <div class="device-info-item">
+                            <span class="device-info-label">${label}:</span>
+                            <span class="device-info-value">${String(value)}</span>
+                        </div>
+                    `;
+                }
+            });
+        }
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    // Set the content
+    infoContent.innerHTML = html || '<div class="text-muted">No device information available</div>';
+    
+    console.log('All devices info displayed');
+}
+</script>
+{% endblock %}

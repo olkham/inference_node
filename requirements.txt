@@ -1,0 +1,31 @@
+# Core dependencies
+flask>=2.0.0
+waitress>=2.1.0
+psutil>=5.8.0
+paho-mqtt>=1.6.0
+requests>=2.25.0
+
+# pip install "git+https://github.com/olkham/FrameSource.git#egg=FrameSource[full]"
+git+https://github.com/olkham/FrameSource.git#egg=FrameSource[full]
+
+# Computer vision dependencies
+opencv-python>=4.5.0
+numpy>=1.21.0
+Pillow>=8.0.0
+
+# AI/ML frameworks (optional - install based on needs)
+ultralytics>=8.0.0
+torch>=1.11.0
+torchvision>=0.12.0
+geti-sdk>=2.11.0
+
+# GPU monitoring (optional) - uses newer nvidia-ml-py instead of deprecated pynvml
+nvidia-ml-py>=12.0.0
+
+# Serial communication (optional)
+pyserial>=3.5
+
+# Development dependencies
+pytest>=6.0.0
+black>=21.0.0
+flake8>=3.9.0

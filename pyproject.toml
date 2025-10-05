@@ -1,0 +1,77 @@
+[project]
+name = "infernode"
+dynamic = ["version"]
+description = "Scalable inference platform with multi-node management and control"
+authors = [
+    {name = "Oliver Hamilton", email = "olkhamsoft@gmail.com"}
+]
+keywords = [
+    "ai", "ml", "inference", "computer-vision", "yolo", "distributed", 
+    "pipeline", "automation", "iot", "edge-computing"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "flask>=2.0.0",
+    "waitress>=2.1.0",
+    "psutil>=5.8.0",
+    "paho-mqtt>=1.6.0",
+    "requests>=2.25.0",
+    "opencv-python>=4.5.0",
+    "numpy>=1.21.0",
+    "Pillow>=8.0.0",
+    "FrameSource[full] @ git+https://github.com/olkham/FrameSource.git",
+]
+requires-python = ">=3.10"
+readme = "readme.md"
+license = {text = "MIT"}
+
+[project.urls]
+Homepage = "https://github.com/olkham/InferNode"
+Repository = "https://github.com/olkham/InferNode"
+Documentation = "https://github.com/olkham/InferNode/docs"
+Issues = "https://github.com/olkham/InferNode/issues"
+
+[project.optional-dependencies]
+ai = [
+    "ultralytics>=8.0.0",
+    "torch>=1.11.0",
+    "torchvision>=0.12.0",
+    "geti-sdk>=2.11.0",
+]
+gpu = [
+    "nvidia-ml-py>=12.0.0",
+]
+serial = [
+    "pyserial>=3.5",
+]
+dev = [
+    "pytest>=6.0.0",
+    "black>=21.0.0",
+    "flake8>=3.9.0",
+]
+
+[project.scripts]
+infernode = "main:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["InferenceNode*", "InferenceEngine*", "ResultPublisher*", "Networking*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "InferenceNode._version.__version__"}

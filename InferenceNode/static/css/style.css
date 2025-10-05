@@ -1,0 +1,1290 @@
+/* Custom styles for InferNode */
+
+:root {
+    --primary-color: #0d6efd;
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #0dcaf0;
+    --dark-color: #212529;
+    --light-color: #f8f9fa;
+}
+
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Navigation */
+.navbar-brand {
+    font-weight: 600;
+    font-size: 1.3rem;
+}
+
+.navbar-nav .nav-link {
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 0.375rem;
+}
+
+/* Cards */
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background-color: white;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+}
+
+/* Status indicators */
+.status-online {
+    color: var(--success-color);
+}
+
+.status-offline {
+    color: var(--danger-color);
+}
+
+.status-warning {
+    color: var(--warning-color);
+}
+
+/* Performance cards */
+.performance-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 1rem;
+}
+
+.performance-card .card-body {
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.performance-card h4 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+/* Progress bars */
+.progress {
+    height: 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.progress-bar {
+    border-radius: 0.25rem;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 0.375rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Modern Button Selectors */
+.button-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin-bottom: 1rem;
+}
+
+.button-selector-item {
+    flex: 1;
+    min-width: 75px;
+    background: #292929;
+    border: 2px solid #495057;
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    position: relative;
+    color: #adb5bd;
+}
+
+.button-selector-item:hover:not(.disabled) {
+    border-color: #0d6efd;
+    background-color: #3d4449;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(13, 110, 253, 0.2);
+    color: #e9ecef;
+}
+
+.button-selector-item.active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
+}
+
+.button-selector-item.active:hover {
+    background-color: #0b5ed7;
+    border-color: #0b5ed7;
+    color: white;
+}
+
+.button-selector-item.disabled {
+    background-color: #2c3034;
+    border-color: #3d4449;
+    color: #6c757d;
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+.button-selector-item.disabled:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: #3d4449;
+    background-color: #2c3034;
+}
+
+.button-selector-item.disabled .icon {
+    color: #6c757d;
+    opacity: 1;
+}
+
+.button-selector-item.disabled .label {
+    color: #6c757d;
+}
+
+.button-selector-item.disabled .description {
+    color: #6c757d;
+    opacity: 0.8;
+}
+
+.button-selector-item .icon {
+    font-size: 1.25rem;
+    opacity: 0.9;
+    color: #adb5bd;
+}
+
+.button-selector-item:hover:not(.disabled) .icon {
+    color: #e9ecef;
+}
+
+.button-selector-item.active .icon {
+    opacity: 1;
+    color: white;
+}
+
+.button-selector-item .label {
+    font-weight: 500;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    color: #adb5bd;
+}
+
+.button-selector-item:hover:not(.disabled) .label {
+    color: #e9ecef;
+}
+
+.button-selector-item.active .label {
+    color: white;
+}
+
+.button-selector-item .description {
+    font-size: 0.7rem;
+    opacity: 0.8;
+    margin-top: 0.15rem;
+    color: #868e96;
+}
+
+.button-selector-item:hover:not(.disabled) .description {
+    color: #ced4da;
+}
+
+.button-selector-item.active .description {
+    opacity: 1;
+    color: white;
+}
+
+/* Recommended device styling */
+.button-selector-item.recommended {
+    border-color: #198754;
+    background-color: #2d4a35;
+}
+
+.button-selector-item.recommended:hover:not(.active) {
+    border-color: #198754;
+    background-color: #3a5a42;
+    box-shadow: 0 3px 6px rgba(25, 135, 84, 0.25);
+    color: #e9ecef;
+}
+
+.button-selector-item.recommended.active {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+}
+
+.button-selector-item.recommended.active:hover {
+    background-color: #157347;
+    border-color: #157347;
+    color: white;
+}
+
+.button-selector-item.recommended .icon {
+    color: #adb5bd;
+}
+
+.button-selector-item.recommended:hover:not(.active) .icon {
+    color: #e9ecef;
+}
+
+.button-selector-item.recommended.active .icon {
+    color: white;
+}
+
+.button-selector-item.recommended .label {
+    color: #adb5bd;
+}
+
+.button-selector-item.recommended:hover:not(.active) .label {
+    color: #e9ecef;
+}
+
+.button-selector-item.recommended.active .label {
+    color: white;
+}
+
+.button-selector-item.recommended .description {
+    color: #868e96;
+}
+
+.button-selector-item.recommended:hover:not(.active) .description {
+    color: #ced4da;
+}
+
+.button-selector-item.recommended.active .description {
+    color: white;
+}
+
+/* Upload button styling */
+.button-selector-item.upload-button {
+    border-color: #6f42c1;
+    background-color: #3a2a4d;
+    color: #b8a9d1;
+}
+
+.button-selector-item.upload-button:hover {
+    border-color: #6f42c1;
+    background-color: #4a3860;
+    color: #e9ecef;
+    box-shadow: 0 3px 6px rgba(111, 66, 193, 0.25);
+}
+
+.button-selector-item.upload-button .icon {
+    color: #b8a9d1;
+}
+
+.button-selector-item.upload-button:hover .icon {
+    color: #e9ecef;
+}
+
+.button-selector-item.upload-button .label {
+    color: #b8a9d1;
+}
+
+.button-selector-item.upload-button:hover .label {
+    color: #e9ecef;
+}
+
+.button-selector-item.upload-button .description {
+    color: #9084a3;
+}
+
+.button-selector-item.upload-button:hover .description {
+    color: #ced4da;
+}
+
+/* Step section spacing */
+.step-section {
+    padding: 1.5rem 0;
+}
+
+.step-section h6 {
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+}
+
+/* Horizontal rule styling */
+hr.my-4 {
+    border-color: #e9ecef;
+    opacity: 0.6;
+    margin: 2rem 0 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .button-selector-item {
+        min-width: 65px;
+        padding: 0.35rem 0.5rem;
+        flex: 1 1 calc(50% - 0.2rem);
+    }
+    
+    .button-selector-item .icon {
+        font-size: 1rem;
+    }
+    
+    .button-selector-item .label {
+        font-size: 0.7rem;
+    }
+    
+    .button-selector-item .description {
+        font-size: 0.6rem;
+    }
+}
+
+/* Special styling for larger selector groups */
+.button-selector.large-group .button-selector-item {
+    flex: 1 1 calc(20% - 0.3rem);
+    min-width: 65px;
+}
+
+/* Single item styling */
+.button-selector .button-selector-item:only-child {
+    flex: 1;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+@media (max-width: 1200px) {
+    .button-selector.large-group .button-selector-item {
+        flex: 1 1 calc(25% - 0.28rem);
+    }
+}
+
+@media (max-width: 992px) {
+    .button-selector.large-group .button-selector-item {
+        flex: 1 1 calc(33.333% - 0.25rem);
+    }
+}
+
+@media (max-width: 768px) {
+    .button-selector.large-group .button-selector-item {
+        flex: 1 1 calc(50% - 0.2rem);
+    }
+}
+
+@media (max-width: 576px) {
+    .button-selector.large-group .button-selector-item {
+        flex: 1 1 100%;
+    }
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Tables */
+.table {
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: var(--dark-color);
+    background-color: #f8f9fa;
+}
+
+/* Dark theme table headers */
+.table thead.table-dark th {
+    background-color: #212529 !important;
+    color: #ffffff !important;
+    border-color: #32383e !important;
+}
+
+.table td {
+    color: #6c757d;
+    font-weight: normal;
+}
+
+.table-sm td, .table-sm th {
+    font-size: 0.9rem;
+    color: #6c757d;
+    font-weight: normal;
+}
+
+.table .text-muted {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+/* Forms */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Page-specific Styles */
+
+/* Pipeline Page */
+#previewStream {
+    max-width: 100%;
+    height: auto;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+#previewContainer {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-xl {
+    max-width: 90%;
+}
+
+@media (max-width: 768px) {
+    .modal-xl {
+        max-width: 95%;
+    }
+}
+
+.modal-xl {
+    max-width: 90%;
+}
+
+@media (max-width: 768px) {
+    .modal-xl {
+        max-width: 95%;
+    }
+}
+
+/* Logs Page */
+.log-container {
+    background-color: #212529;
+    color: #ffffff;
+}
+
+.log-entry {
+    border-bottom: 1px solid #343a40 !important;
+    color: #ffffff;
+}
+
+.log-entry:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.log-entry .text-muted {
+    color: #adb5bd !important;
+}
+
+.badge-sm {
+    font-size: 0.7rem;
+}
+
+@media (max-width: 768px) {
+    .log-entry .d-flex {
+        flex-direction: column;
+    }
+    
+    .log-entry .d-flex > span {
+        margin-bottom: 0.25rem;
+    }
+}
+
+/* Dashboard System Overview - Ensure equal heights */
+.system-overview-card {
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.system-overview-card .card-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1rem;
+}
+
+/* Fix yellow background text contrast */
+.bg-warning {
+    color: #000 !important; /* Black text for better contrast on yellow */
+}
+
+.bg-warning .badge,
+.bg-warning .btn {
+    color: #000 !important;
+}
+
+/* API Documentation Test Results */
+.api-test-results {
+    min-height: 200px;
+    background-color: #212529;
+    color: #ffffff;
+}
+
+/* Upload Progress */
+.upload-progress {
+    display: none;
+}
+
+.upload-progress.show {
+    display: block;
+}
+
+/* Progress bars for various components */
+.progress-small {
+    height: 8px;
+}
+
+.progress-medium {
+    height: 10px;
+}
+
+/* Log container styling */
+.log-display {
+    height: 400px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    background-color: #212529;
+    color: #ffffff;
+}
+
+/* Specific height for logs container page */
+.log-container {
+    background-color: #212529;
+    color: #ffffff;
+    height: 500px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 0.875rem;
+}
+
+.log-timestamp {
+    min-width: 140px;
+    font-size: 0.8rem;
+    color: #adb5bd;
+}
+
+.log-level-badge {
+    min-width: 70px;
+}
+
+.log-component-badge {
+    min-width: 80px;
+}
+
+/* Preview stream styling */
+.preview-stream {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Environment variables container */
+.env-vars-container {
+    display: none;
+}
+
+/* Clear all button */
+.clear-all-btn {
+    display: none;
+}
+
+/* Height standardization for status boxes */
+.status-box {
+    height: 140px;
+}
+
+/* Alerts */
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.alert-success {
+    background-color: rgba(25, 135, 84, 0.15);
+    color: #067a44;
+    border: 1px solid rgba(25, 135, 84, 0.2);
+}
+
+.alert-danger {
+    background-color: rgba(220, 53, 69, 0.15);
+    color: #a40916;
+    border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.alert-warning {
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #ffbf00;
+    border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
+.alert-info {
+    background-color: rgba(0, 0, 0, 0.36);
+    color: #40a1b4;
+    border: 1px solid rgba(13, 202, 240, 0.2);
+}
+
+/* Badges */
+.badge {
+    font-weight: 600;
+    font-size: 0.8em;
+    letter-spacing: 0.025em;
+}
+
+/* Code blocks */
+pre {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    font-size: 0.875rem;
+}
+
+/* Charts */
+.chart-container {
+    position: relative;
+    height: 200px;
+    margin-bottom: 1rem;
+}
+
+/* Modals */
+.modal-content {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+}
+
+.modal-header {
+    border-bottom: 1px solid #dee2e6;
+    padding: 1.5rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+/* File upload areas */
+.file-upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    color: #495057 !important;
+    font-weight: 500;
+}
+
+.file-upload-area:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(13, 110, 253, 0.05);
+    color: #0d6efd !important;
+}
+
+.file-upload-area.dragover {
+    border-color: var(--success-color);
+    background-color: rgba(25, 135, 84, 0.05);
+    color: #198754 !important;
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .performance-card h4 {
+        font-size: 1.5rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bs-body-bg: #1a1a1a;
+        --bs-body-color: #e9ecef;
+    }
+    
+    body {
+        background-color: #1a1a1a;
+        color: #e9ecef;
+    }
+    
+    .card {
+        background-color: #2d3748;
+        color: #e9ecef;
+    }
+    
+    .card-header {
+        background-color: #2d3748;
+        border-bottom-color: #4a5568;
+    }
+    
+    .navbar-dark {
+        background-color: #2d3748 !important;
+    }
+    
+    pre {
+        background-color: #1a202c;
+        border-color: #4a5568;
+        color: #e9ecef;
+    }
+}
+
+/* Light theme text contrast improvements */
+.text-muted {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+.card-text {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+.help-text, .form-text {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+/* Message and notification improvements */
+.alert .text-muted {
+    color: inherit !important;
+    opacity: 0.8;
+}
+
+.list-group-item .text-muted {
+    color: #6c757d !important;
+}
+
+.dropdown-item .text-muted {
+    color: #6c757d !important;
+}
+
+/* Animation classes */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+.slide-up {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Utility classes */
+/* .text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+} */
+
+/* .shadow-sm-hover:hover {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+} */
+
+.border-dashed {
+    border-style: dashed !important;
+}
+
+/* Improved text readability - Lighter contrast */
+.text-muted {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+.text-muted-light {
+    color: #8e9297 !important;
+    font-weight: normal;
+}
+
+.text-readable {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+.text-emphasis {
+    color: #495057 !important;
+    font-weight: 500;
+}
+
+.text-secondary-readable {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+/* Card text improvements */
+.card .text-muted {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+.card-text {
+    color: #6c757d !important;
+    line-height: 1.6;
+    font-weight: normal;
+}
+
+/* Small text improvements */
+small, .small {
+    color: #d8d8d8 !important;
+    font-weight: normal;
+    font-size: 0.875rem;
+}
+
+/* Help text and descriptions */
+.form-text, .help-text {
+    color: #6c757d !important;
+    font-weight: normal;
+    font-size: 0.875rem;
+}
+
+/* Status text improvements */
+.status-text {
+    font-weight: normal;
+    font-size: 0.95rem;
+    color: #6c757d !important;
+}
+
+/* Instructional and descriptive text */
+.instruction-text {
+    color: #6c757d !important;
+    font-weight: normal;
+    line-height: 1.6;
+}
+
+.description-text {
+    color: #6c757d !important;
+    font-weight: normal;
+    line-height: 1.5;
+    font-size: 0.9rem;
+}
+
+.placeholder-text {
+    color: #6c757d !important;
+    font-style: italic;
+    font-weight: normal;
+}
+
+.empty-state-text {
+    color: #6c757d !important;
+    font-weight: normal;
+    text-align: center;
+    padding: 1rem;
+}
+
+/* Improve contrast for info messages */
+.info-message {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: #0a58ca !important;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid rgba(13, 110, 253, 0.2);
+    font-weight: 500;
+}
+
+.warning-message {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #664d03 !important;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid rgba(255, 193, 7, 0.2);
+    font-weight: 500;
+}
+
+/* Template-specific improvements */
+.engine-status-message {
+    color: #6c757d !important;
+    font-weight: normal;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 0.375rem;
+    border: 1px solid #dee2e6;
+}
+
+.no-data-message {
+    color: #6c757d !important;
+    font-weight: normal;
+    font-style: normal;
+    text-align: center;
+    padding: 2rem;
+    font-size: 1rem;
+}
+
+.loading-message {
+    color: #0d6efd !important;
+    font-weight: normal;
+}
+
+/* Badge improvements */
+.badge {
+    font-weight: 500;
+    font-size: 0.85em;
+    letter-spacing: 0.025em;
+}
+
+.badge-secondary {
+    background-color: #6c757d !important;
+    color: white !important;
+    font-weight: 500;
+}
+
+/* Additional contrast improvements */
+.navbar-dark .navbar-nav .nav-link {
+    color: rgba(255,255,255,0.9) !important;
+    font-weight: normal;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover {
+    color: white !important;
+}
+
+/* Strong text elements */
+strong, b {
+    color: #9eabb8 !important;
+    font-weight: 600;
+}
+
+/* Card title improvements
+.card-title {
+    color: #343a40 !important;
+    font-weight: 600;
+} */
+
+.card-subtitle {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+/* List group improvements */
+.list-group-item {
+    color: #6c757d !important;
+}
+
+.list-group-item .text-muted {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+/* Dropdown improvements */
+.dropdown-item {
+    color: #6c757d !important;
+}
+
+.dropdown-item .text-muted {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+/* Telemetry specific improvements */
+.telemetry-label {
+    color: #6c757d !important;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.telemetry-value {
+    color: #495057 !important;
+    font-weight: 500;
+}
+
+.metric-label {
+    color: #6c757d !important;
+    font-weight: 500;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Form label improvements */
+.form-label {
+    color: #d7ebff !important;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+/* Input placeholder improvements */
+.form-control::placeholder {
+    color: #8e9297 !important;
+    opacity: 1;
+    font-weight: normal;
+}
+
+/* Chart label improvements */
+.chart-title {
+    color: #343a40 !important;
+    font-weight: 600;
+}
+
+/* Progress text improvements */
+.progress-text {
+    color: #6c757d !important;
+    font-weight: normal;
+    font-size: 0.875rem;
+}
+
+/* Bootstrap text utility overrides for better contrast */
+.text-primary {
+    color: #0d6efd !important;
+    font-weight: normal;
+}
+
+.text-secondary {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+.text-success {
+    color: #198754 !important;
+    font-weight: normal;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+    font-weight: normal;
+}
+
+.text-warning {
+    color: #fd7e14 !important;
+    font-weight: normal;
+}
+
+.text-info {
+    color: #0dcaf0 !important;
+    font-weight: normal;
+}
+
+.text-dark {
+    color: #495057 !important;
+    font-weight: normal;
+}
+
+/* Override Bootstrap's default muted color globally */
+.text-muted, 
+.small.text-muted,
+small.text-muted,
+.form-text.text-muted {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+/* Specific improvements for telemetry page elements */
+.current-status .text-muted {
+    color: #6c757d !important;
+    font-weight: 500;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.hardware-info .text-muted {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+.network-status .text-muted {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+/* Form controls and labels */
+.form-control {
+    color: #ced6df !important;
+    font-weight: normal;
+}
+
+.form-control:focus {
+    color: #ced6df !important;
+}
+
+/* Fix for file input buttons - exclude them from the light color override */
+.form-control[type="file"] {
+    color: initial !important;
+}
+
+.form-control[type="file"]:focus {
+    color: initial !important;
+}
+
+/* Table improvements for telemetry data */
+.table td strong {
+    color: #9eabb8 !important;
+    font-weight: 600;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #343a40 !important;
+    background-color: #f8f9fa;
+}
+
+/* Chart and metric display improvements */
+.h4 {
+    font-weight: 600 !important;
+    color: inherit;
+}
+
+/* Button text improvements */
+.btn {
+    font-weight: normal;
+}
+
+/* Card body text improvements */
+.card-body {
+    color: #dcdcdc;
+}
+
+.card-body .text-muted {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+/* Additional specific overrides */
+span.text-muted {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+div.text-muted {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+p.text-muted {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+/* Progress bar text */
+.progress + small {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+/* Network stats specific styling */
+#networkStats {
+    color: #6c757d !important;
+    font-weight: normal;
+    font-family: 'Courier New', monospace;
+}
+
+/* Make sure all telemetry labels are clearly visible */
+.telemetry-section strong {
+    color: #9eabb8 !important;
+    font-weight: 600;
+}
+
+.telemetry-section .text-muted {
+    color: #6c757d !important;
+    font-weight: normal;
+}
+
+/* Hardware info and telemetry table specific styling */
+.hardware-info table td:first-child,
+.telemetry-config table td:first-child {
+    color: #343a40 !important;
+    font-weight: 600;
+}
+
+.hardware-info strong,
+.telemetry-config strong,
+.current-status strong {
+    color: #9eabb8 !important;
+    font-weight: 600;
+}
+
+/* Network status labels */
+.network-status strong {
+    color: #9eabb8 !important;
+    font-weight: 600;
+}
+
+/* Card section headers */
+.card-header h5,
+.card-header .card-title {
+    color: #6cb5ff !important;
+    font-weight: 600;
+}
+
+/* Table header improvements */
+.table thead th {
+    color: #343a40 !important;
+    font-weight: 600;
+}
+
+/* Specific telemetry metric labels */
+.metric-display strong,
+.status-display strong {
+    color: #9eabb8 !important;
+    font-weight: 600;
+}
