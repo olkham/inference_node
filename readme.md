@@ -1,4 +1,7 @@
-# InferNode is a scalable inference platform that provides multi-node management and control for AI/ML inference workloads. It enables easy deployment and management of inference pipelines across distributed nodes with auto-discovery, telemetry, and flexible result publishing.
+# InferNode
+## A scalable inference platform that provides multi-node management and control for AI/ML inference workloads.
+
+### It enables easy deployment and management of inference pipelines across distributed nodes with auto-discovery, telemetry, and flexible result publishing.
 
 ## 📺 Demo Video
 
