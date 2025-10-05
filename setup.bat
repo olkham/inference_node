@@ -78,11 +78,10 @@ echo IMPORTANT: To use InferNode, activate the virtual environment first:
 echo    call .venv\Scripts\activate.bat
 echo.
 echo Then you can:
-echo 1. Start InferNode: python main.py
+echo 1. Start InferNode: python main.py --production
 echo 2. Start with custom port: python main.py --port 8080
 echo 3. Disable discovery: python main.py --no-discovery
 echo 4. Disable telemetry: python main.py --no-telemetry
-echo 5. View help: python main.py --help
 echo.
 echo Web interface will be available at: http://localhost:5555
 echo.
