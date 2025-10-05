@@ -5,7 +5,7 @@ InferNode is a scalable inference platform that provides multi-node management a
 ## 🚀 Features
 
 ### Core Capabilities
-- **Multi-engine support**: Ultralytics YOLO, Geti, PyTorch, and custom engines
+- **Multi-engine support**: Ultralytics YOLO, Geti, and custom engines
 - **Auto-discovery**: Nodes automatically discover each other on the network
 - **Real-time telemetry**: System monitoring and performance metrics via MQTT
 - **Flexible result publishing**: MQTT, webhooks, serial, and custom destinations
@@ -13,34 +13,44 @@ InferNode is a scalable inference platform that provides multi-node management a
 - **Rate limiting**: Built-in rate limiting for all result destinations
 
 ### Supported Inference Engines
-- **Ultralytics**: YOLO object detection models
+- **Ultralytics**: YOLO object detection models (YOLOv8, YOLOv11, etc.)
 - **Geti**: Intel's computer vision platform
-- **PyTorch**: General PyTorch model support
+- **Pass-through**: For testing and development
 - **Custom**: Extensible framework for custom implementations
 
 ### Result Destinations
 - **MQTT**: Publish results to MQTT brokers
 - **Webhook**: HTTP POST to custom endpoints
-- **Serial**: Output to serial ports
+- **Serial**: Output to serial ports (RS-232, USB)
+- **OPC UA**: Industrial automation protocol
+- **ROS2**: Robot Operating System 2
+- **ZeroMQ**: High-performance messaging
+- **Folder**: Save to local/network filesystem
+- **Roboflow**: Integration with Roboflow platform
+- **Geti**: Geti platform integration
 - **Custom**: Implement your own destinations
 
 ## 📋 Requirements
 
-- Python 3.8+
-- Compatible with Windows, Linux, and macOS
+- Python 3.10+
+- Compatible with Windows, Linux, and macOS (probably)
 - Optional: CUDA for GPU acceleration
-- Optional: MQTT broker for telemetry
+- Optional: MQTT broker for telemetry and result publishing
 
 ## 🛠️ Installation
 
 ### Quick Start
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/olkham/InferNode.git
 cd InferNode
 
-# Run the setup script
-python setup.py
+# Run the setup script (Windows)
+setup.bat
+
+# Or on Linux/macOS
+chmod +x setup.sh
+./setup.sh
 ```
 
 ### Manual Installation
@@ -48,14 +58,14 @@ python setup.py
 # Install core dependencies
 pip install -r requirements.txt
 
-# Optional: Install AI/ML frameworks
-pip install torch torchvision ultralytics
+# Optional: Install AI/ML frameworks (if not already in requirements.txt)
+pip install torch torchvision ultralytics geti-sdk
 
-# Optional: Install GPU monitoring
-pip install pynvml
+# Optional: Install GPU monitoring (uses nvidia-ml-py, not deprecated pynvml)
+pip install nvidia-ml-py>=12.0.0
 
 # Optional: Install serial communication
-pip install pyserial
+pip install pyserial>=3.5
 ```
 
 ## 🏃‍♂️ Quick Start
@@ -65,17 +75,17 @@ pip install pyserial
 from InferenceNode import InferenceNode
 
 # Create and start a node
-node = InferenceNode("MyNode", port=5000)
+node = InferenceNode("MyNode", port=5555)
 node.start(enable_discovery=True, enable_telemetry=True)
 ```
 
 Or use the command line:
 ```bash
-# Start full node with all services
+# Start full node with all services using Flask
 python main.py
 
-# Start web interface only
-python main.py --web-only
+# Start full node with all services using waitress (production mode)
+python main.py --production
 
 # Start with custom settings
 python main.py --port 8080 --name "ProductionNode" --no-telemetry
@@ -186,64 +196,69 @@ POST /api/telemetry/stop
 ## 📁 Project Structure
 
 ```
-InferNode/
+inference_node/
 ├── InferenceEngine/          # Inference engine implementations
-│   ├── __init__.py
-│   ├── base_engine.py        # Base class for all engines
-│   ├── ultralytics_engine.py # Ultralytics YOLO support
-│   ├── geti_engine.py        # Geti support
-│   ├── torch_engine.py       # PyTorch model support
-│   └── custom_engine.py      # Custom engine template
+│   ├── engines/
+│   │   ├── base_engine.py        # Base class for all engines
+│   │   ├── ultralytics_engine.py # Ultralytics YOLO support
+│   │   ├── geti_engine.py        # Geti support
+│   │   ├── pass_engine.py        # Pass-through engine
+│   │   └── example_engine_template.py # Custom engine template
+│   ├── inference_engine_factory.py
+│   └── result_converters.py
+├── InferenceNode/            # Main node implementation
+│   ├── inference_node.py     # Core node class
+│   ├── pipeline_manager.py   # Pipeline orchestration
+│   ├── pipeline.py           # Pipeline definitions
+│   ├── discovery_manager.py  # Network discovery
+│   ├── telemetry.py          # System telemetry
+│   ├── model_repo.py         # Model repository
+│   ├── hardware_detector.py  # Hardware detection
+│   ├── log_manager.py        # Logging
+│   ├── static/               # Web UI assets
+│   └── templates/            # Web UI templates
 ├── ResultPublisher/          # Result publishing system
-│   ├── __init__.py
 │   ├── publisher.py          # Main publisher class
-│   └── result_destinations.py # Destination implementations
-├── tests/                    # Unit tests
-├── inference_node.py         # Main node implementation
-├── telemetry.py             # System telemetry
-├── discovery.py             # Network discovery
-├── example.py               # Usage examples
-├── setup.py                 # Installation script
-├── requirements.txt         # Dependencies
-├── pyproject.toml          # Project configuration
-└── README.md               # This file
+│   ├── base_destination.py   # Base destination class
+│   ├── result_destinations.py # Built-in destinations
+│   └── plugins/              # Pluggable destinations
+│       ├── mqtt_destination.py
+│       ├── webhook_destination.py
+│       ├── serial_destination.py
+│       ├── opcua_destination.py
+│       ├── ros2_destination.py
+│       ├── zeromq_destination.py
+│       ├── folder_destination.py
+│       ├── roboflow_destination.py
+│       ├── geti_destination.py
+│       └── null_destination.py
+├── main.py                   # Entry point
+├── setup.bat                 # Windows setup script
+├── setup.sh                  # Linux/macOS setup script
+├── requirements.txt          # Dependencies
+├── pyproject.toml            # Project configuration
+├── Dockerfile                # Docker container
+├── docker-compose.yml        # Docker compose configuration
+└── readme.md                 # This file
 ```
 
 ## 🔧 Configuration
 
-Create a `config.py` file (see `config_example.py`):
+The node can be configured through:
+- **Command-line arguments**: `python main.py --port 8080 --name "MyNode"`
+- **Web UI**: Access the dashboard at `http://localhost:8080`
+- **REST API**: Configure via API endpoints
 
-```python
-# Node configuration
-NODE_NAME = "MyInferNode"
-NODE_PORT = 5000
-
-# MQTT configuration
-MQTT_SERVER = "localhost"
-MQTT_PORT = 1883
-MQTT_TOPIC_PREFIX = "infernode"
-
-# Discovery configuration
-DISCOVERY_PORT = 8888
-ENABLE_DISCOVERY = True
-
-# Logging
-LOG_LEVEL = "INFO"
-LOG_FILE = "logs/infernode.log"
-```
+Default settings:
+- Node Port: 5555
+- Discovery: Enabled
+- Telemetry: Disabled by default
+- Model Repository: `InferenceNode/model_repository/models/`
+- Pipelines: `InferenceNode/pipelines/`
 
 ## 🧪 Testing
+### TODO 😂
 
-```bash
-# Run all tests
-python -m pytest tests/
-
-# Run specific test file
-python -m pytest tests/test_inference_engine.py
-
-# Run with coverage
-python -m pytest --cov=InferenceEngine --cov=ResultPublisher tests/
-```
 
 ## 🔍 Monitoring and Telemetry
 
@@ -331,7 +346,7 @@ class MyCustomDestination(BaseResultDestination):
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the Apache 2.0 License - see the LICENSE file for details.
 
 ## 🆘 Support
 
@@ -342,10 +357,10 @@ For questions and support:
 
 ## 🗺️ Roadmap
 
-- [ ] Web-based management interface
-- [ ] Database integration for model management
-- [ ] Kubernetes deployment support
+- [x] Web-based management interface
+- [x] Integration with FrameSource library
+- [x] Docker containers and orchestration
 - [ ] Advanced load balancing
 - [ ] Model versioning and A/B testing
-- [ ] Integration with FrameSource library
-- [ ] Docker containers and orchestration
+- [ ] Enhanced pipeline builder UI
+- [ ] Additional inference engine integrations
