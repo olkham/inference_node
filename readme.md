@@ -37,9 +37,11 @@ https://github.com/user-attachments/assets/5ed323d7-e8cf-421a-be8f-781e3f51c9a0
 ## 📋 Requirements
 
 - Python 3.10+
-- Compatible with Windows, Linux, and macOS (probably)
+- Compatible with Windows, Linux
 - Optional: CUDA for GPU acceleration
 - Optional: MQTT broker for telemetry and result publishing
+
+> **Note:** Only tested on a limited set of configurations so far (Windows / Ubuntu) x (Intel / Nvidia) - AMD and more is on the #todo list
 
 ## 🛠️ Installation
 
