@@ -2,7 +2,13 @@
 
 InferNode is a scalable inference platform that provides multi-node management and control for AI/ML inference workloads. It enables easy deployment and management of inference pipelines across distributed nodes with auto-discovery, telemetry, and flexible result publishing.
 
-## 🚀 Features
+## � Demo Video
+
+[![InferNode Demo](https://img.youtube.com/vi/_jGX6Y6FqGI/0.jpg)](https://www.youtube.com/watch?v=_jGX6Y6FqGI)
+
+Click the image above to watch the demo video on YouTube.
+
+## �🚀 Features
 
 ### Core Capabilities
 - **Multi-engine support**: Ultralytics YOLO, Geti, and custom engines
