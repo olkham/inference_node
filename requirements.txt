@@ -5,8 +5,8 @@ psutil>=5.8.0
 paho-mqtt>=1.6.0
 requests>=2.25.0
 
-# pip install "git+https://github.com/olkham/FrameSource.git#egg=FrameSource[full]"
-git+https://github.com/olkham/FrameSource.git#egg=FrameSource[full]
+# FrameSource package from GitHub (PEP 508 syntax)
+FrameSource[full] @ git+https://github.com/olkham/FrameSource.git
 
 # Computer vision dependencies
 opencv-python>=4.5.0
