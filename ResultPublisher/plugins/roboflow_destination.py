@@ -251,9 +251,9 @@ if __name__ == "__main__":
     # Example usage
     destination = RoboflowDestination()
     destination.configure(
-        api_key="JdE7CKe7XqlZsvd7EJcx",
-        workspace_id="oliver-be5uk",
-        project_id="slugs-f0qfr"
+        api_key="ROBOFLOW_API_KEY",
+        workspace_id="WORKSPACE_ID",
+        project_id="PROJECT_ID",
     )
 
     import cv2

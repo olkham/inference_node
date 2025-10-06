@@ -7,7 +7,7 @@ REM Check if Python is installed
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo Error: Python is not installed or not in PATH
-    echo Please install Python 3.8+ from https://python.org
+    echo Please install Python 3.10-3.13 from https://python.org
     pause
     exit /b 1
 )
@@ -15,6 +15,50 @@ if %errorlevel% neq 0 (
 REM Display Python version
 echo Python detected:
 python --version
+echo.
+
+REM Check Python version compatibility (requires 3.10 <= version <= 3.13 for Geti)
+echo Checking Python version compatibility...
+for /f "tokens=2" %%i in ('python --version 2^>^&1') do set PYTHON_VERSION=%%i
+for /f "tokens=1,2 delims=." %%a in ("%PYTHON_VERSION%") do (
+    set PYTHON_MAJOR=%%a
+    set PYTHON_MINOR=%%b
+)
+
+if %PYTHON_MAJOR% LSS 3 (
+    echo Error: Python 3.10-3.13 is required for Geti compatibility
+    echo Found Python %PYTHON_VERSION%
+    echo Please install a compatible Python version from https://python.org
+    pause
+    exit /b 1
+)
+
+if %PYTHON_MAJOR% EQU 3 (
+    if %PYTHON_MINOR% LSS 10 (
+        echo Error: Python 3.10-3.13 is required for Geti compatibility
+        echo Found Python %PYTHON_VERSION%
+        echo Please install a compatible Python version from https://python.org
+        pause
+        exit /b 1
+    )
+    if %PYTHON_MINOR% GTR 13 (
+        echo Error: Python 3.10-3.13 is required for Geti compatibility
+        echo Found Python %PYTHON_VERSION%
+        echo Please install a compatible Python version from https://python.org
+        pause
+        exit /b 1
+    )
+)
+
+if %PYTHON_MAJOR% GTR 3 (
+    echo Error: Python 3.10-3.13 is required for Geti compatibility
+    echo Found Python %PYTHON_VERSION%
+    echo Please install a compatible Python version from https://python.org
+    pause
+    exit /b 1
+)
+
+echo [OK] Python %PYTHON_VERSION% is compatible with Geti requirements
 echo.
 
 echo Starting InferNode setup...

@@ -40,13 +40,18 @@ PYTHON_MINOR=$(python3 -c 'import sys; print(sys.version_info[1])')
 
 echo "Found Python $PYTHON_VERSION"
 
-# Check if Python version is >= 3.10
+# Check if Python version is >= 3.10 and <= 3.13 (Geti requirement)
 if [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 10 ]); then
-    print_error "Python 3.10 or higher is required. Found Python $PYTHON_VERSION"
+    print_error "Python 3.10-3.13 is required for Geti compatibility. Found Python $PYTHON_VERSION"
     exit 1
 fi
 
-print_status "Python version check passed (Python $PYTHON_VERSION)"
+if [ "$PYTHON_MAJOR" -gt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -gt 13 ]); then
+    print_error "Python 3.10-3.13 is required for Geti compatibility. Found Python $PYTHON_VERSION"
+    exit 1
+fi
+
+print_status "Python version check passed (Python $PYTHON_VERSION is compatible with Geti requirements)"
 
 # Detect OS and install system dependencies
 echo -e "\nInstalling system dependencies..."
