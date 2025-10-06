@@ -49,7 +49,7 @@ https://github.com/user-attachments/assets/5ed323d7-e8cf-421a-be8f-781e3f51c9a0
 ```bash
 # Clone the repository
 git clone https://github.com/olkham/inference_node.git
-cd InferNode
+cd inference_node
 
 # Run the setup script (Windows)
 setup.bat
