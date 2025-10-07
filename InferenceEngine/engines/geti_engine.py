@@ -36,10 +36,19 @@ except ImportError:
         # Last resort - direct import from the same directory
         from base_engine import BaseInferenceEngine
 
-
-from geti_sdk.deployment import Deployment
-from geti_sdk.utils import show_image_with_annotation_scene
-from geti_sdk.data_models.predictions import Prediction
+# Try to import geti_sdk dependencies - fail gracefully if not available
+try:
+    from geti_sdk.deployment import Deployment
+    from geti_sdk.utils import show_image_with_annotation_scene
+    from geti_sdk.data_models.predictions import Prediction
+    GETI_SDK_AVAILABLE = True
+except ImportError:
+    # If geti_sdk is not installed, create placeholder to allow module to load
+    # The engine will raise a clear error when actually instantiated
+    GETI_SDK_AVAILABLE = False
+    Deployment = None
+    show_image_with_annotation_scene = None
+    Prediction = None
 
 class GetiEngine(BaseInferenceEngine):
     """Inference engine for Geti models"""
@@ -48,6 +57,13 @@ class GetiEngine(BaseInferenceEngine):
     display_name = "Geti"
     
     def __init__(self, **kwargs):
+        # Check if geti_sdk is available before doing anything else
+        if not GETI_SDK_AVAILABLE:
+            raise ImportError(
+                "geti_sdk is not installed. GetiEngine requires the geti-sdk package. "
+                "Install it with: pip install geti-sdk"
+            )
+        
         super().__init__(**kwargs)
         self.model_path = kwargs.get('model_path', None)
         self.device = kwargs.get('device', "CPU")  # Default device

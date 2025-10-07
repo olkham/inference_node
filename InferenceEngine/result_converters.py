@@ -52,280 +52,280 @@ def create_rectangle(x: float, y: float, width: float, height: float):
         return Rectangle(x=x, y=y, width=width, height=height, type=ShapeType.RECTANGLE)
 
 
-def ultralytics_to_geti(ultralytics_result: Dict[str, Any]) -> Prediction:
-    """
-    Convert Ultralytics inference result format to Geti Prediction object using official SDK data models.
+# def ultralytics_to_geti(ultralytics_result: Dict[str, Any]) -> Prediction:
+#     """
+#     Convert Ultralytics inference result format to Geti Prediction object using official SDK data models.
     
-    Args:
-        ultralytics_result: Result from Ultralytics engine in format:
-            {
-                'results': {
-                    'engine': 'ultralytics',
-                    'model_type': 'yolo', 
-                    'results': [
-                        {
-                            'detections': [
-                                {
-                                    'bbox': [x1, y1, x2, y2],
-                                    'confidence': float,
-                                    'class_id': int,
-                                    'class_name': str
-                                }
-                            ],
-                            'image_shape': (height, width)
-                        }
-                    ]
-                }
-            }
+#     Args:
+#         ultralytics_result: Result from Ultralytics engine in format:
+#             {
+#                 'results': {
+#                     'engine': 'ultralytics',
+#                     'model_type': 'yolo', 
+#                     'results': [
+#                         {
+#                             'detections': [
+#                                 {
+#                                     'bbox': [x1, y1, x2, y2],
+#                                     'confidence': float,
+#                                     'class_id': int,
+#                                     'class_name': str
+#                                 }
+#                             ],
+#                             'image_shape': (height, width)
+#                         }
+#                     ]
+#                 }
+#             }
     
-    Returns:
-        Geti SDK Prediction object with proper annotations
-    """
-    if not GETI_SDK_AVAILABLE:
-        logger.error("Geti SDK not available. Cannot create Prediction object.")
-        raise ImportError("Geti SDK is required to create Prediction objects")
+#     Returns:
+#         Geti SDK Prediction object with proper annotations
+#     """
+#     if not GETI_SDK_AVAILABLE:
+#         logger.error("Geti SDK not available. Cannot create Prediction object.")
+#         raise ImportError("Geti SDK is required to create Prediction objects")
 
-    ultra_detections = ultralytics_result.get('results', [])
-    annotations = []
+#     ultra_detections = ultralytics_result.get('results', [])
+#     annotations = []
     
-    # Iterate through each result item in the results array
-    for result_item in ultra_detections:
-        # Each result_item should be a dict with 'detections' and 'image_shape'
-        if isinstance(result_item, dict):
-            detections = result_item.get('detections', [])
+#     # Iterate through each result item in the results array
+#     for result_item in ultra_detections:
+#         # Each result_item should be a dict with 'detections' and 'image_shape'
+#         if isinstance(result_item, dict):
+#             detections = result_item.get('detections', [])
             
-            # Iterate through each detection in this result item
-            for detection in detections:
-                bbox = detection.get('bbox', [])
-                if len(bbox) >= 4:
-                    # Convert from [x1, y1, x2, y2] to Rectangle(x, y, width, height)
-                    x1, y1, x2, y2 = bbox[:4]
-                    x = float(x1)
-                    y = float(y1)
-                    width = float(x2 - x1)
-                    height = float(y2 - y1)
+#             # Iterate through each detection in this result item
+#             for detection in detections:
+#                 bbox = detection.get('bbox', [])
+#                 if len(bbox) >= 4:
+#                     # Convert from [x1, y1, x2, y2] to Rectangle(x, y, width, height)
+#                     x1, y1, x2, y2 = bbox[:4]
+#                     x = float(x1)
+#                     y = float(y1)
+#                     width = float(x2 - x1)
+#                     height = float(y2 - y1)
                     
-                    # Create Rectangle using helper function
-                    shape = create_rectangle(x=x, y=y, width=width, height=height)
+#                     # Create Rectangle using helper function
+#                     shape = create_rectangle(x=x, y=y, width=width, height=height)
                     
-                    # Create ScoredLabel using Geti SDK
-                    scored_label = ScoredLabel(
-                        name=detection.get('class_name', f"class_{detection.get('class_id', 0)}"),
-                        probability=float(detection.get('confidence', 0.0))
-                    )
+#                     # Create ScoredLabel using Geti SDK
+#                     scored_label = ScoredLabel(
+#                         name=detection.get('class_name', f"class_{detection.get('class_id', 0)}"),
+#                         probability=float(detection.get('confidence', 0.0))
+#                     )
                     
-                    # Create Annotation object with shape and labels
-                    annotation = Annotation(
-                        shape=shape,
-                        labels=[scored_label]
-                    )
-                    annotations.append(annotation)
+#                     # Create Annotation object with shape and labels
+#                     annotation = Annotation(
+#                         shape=shape,
+#                         labels=[scored_label]
+#                     )
+#                     annotations.append(annotation)
     
-    # Create and return a Prediction object
-    prediction = Prediction(annotations=annotations)
-    return prediction
+#     # Create and return a Prediction object
+#     prediction = Prediction(annotations=annotations)
+#     return prediction
 
 
-def ultralytics_to_geti_dict(ultralytics_result: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Convert Ultralytics inference result format to Geti format dictionary.
-    This is a wrapper that returns dictionary format for backward compatibility.
+# def ultralytics_to_geti_dict(ultralytics_result: Dict[str, Any]) -> Dict[str, Any]:
+#     """
+#     Convert Ultralytics inference result format to Geti format dictionary.
+#     This is a wrapper that returns dictionary format for backward compatibility.
     
-    Args:
-        ultralytics_result: Result from Ultralytics engine
+#     Args:
+#         ultralytics_result: Result from Ultralytics engine
     
-    Returns:
-        Dict in Geti format for backward compatibility
-    """
-    # Get the Prediction object
-    prediction = ultralytics_to_geti(ultralytics_result)
+#     Returns:
+#         Dict in Geti format for backward compatibility
+#     """
+#     # Get the Prediction object
+#     prediction = ultralytics_to_geti(ultralytics_result)
     
-    # Convert back to dictionary format for compatibility
-    geti_predictions = []
-    for annotation in prediction.annotations:
-        shape = annotation.shape
-        labels = annotation.labels
+#     # Convert back to dictionary format for compatibility
+#     geti_predictions = []
+#     for annotation in prediction.annotations:
+#         shape = annotation.shape
+#         labels = annotation.labels
         
-        if labels and len(labels) > 0:
-            scored_label = labels[0]  # Take the first label
-            geti_prediction = {
-                'label': scored_label.name,
-                'confidence': scored_label.probability,
-                'shape': shape,
-                'scored_label': scored_label
-            }
-            geti_predictions.append(geti_prediction)
+#         if labels and len(labels) > 0:
+#             scored_label = labels[0]  # Take the first label
+#             geti_prediction = {
+#                 'label': scored_label.name,
+#                 'confidence': scored_label.probability,
+#                 'shape': shape,
+#                 'scored_label': scored_label
+#             }
+#             geti_predictions.append(geti_prediction)
     
-    geti_result = {
-        'success': True,
-        'results': {
-            'engine': 'geti',
-            'model_type': 'intel_geti',
-            'results': {
-                'predictions': geti_predictions
-            }
-        },
-        'model_id': ultralytics_result.get('model_id'),
-        'device': ultralytics_result.get('device')
-    }
+#     geti_result = {
+#         'success': True,
+#         'results': {
+#             'engine': 'geti',
+#             'model_type': 'intel_geti',
+#             'results': {
+#                 'predictions': geti_predictions
+#             }
+#         },
+#         'model_id': ultralytics_result.get('model_id'),
+#         'device': ultralytics_result.get('device')
+#     }
     
-    return geti_result
+#     return geti_result
 
 
-def geti_to_ultralytics(geti_result: Dict[str, Any], image_shape: Optional[tuple] = None) -> Dict[str, Any]:
-    """
-    Convert Geti inference result format to Ultralytics format.
+# def geti_to_ultralytics(geti_result: Dict[str, Any], image_shape: Optional[tuple] = None) -> Dict[str, Any]:
+#     """
+#     Convert Geti inference result format to Ultralytics format.
     
-    Args:
-        geti_result: Result from Geti engine using official SDK data models
-        image_shape: Optional tuple (height, width) for the original image
+#     Args:
+#         geti_result: Result from Geti engine using official SDK data models
+#         image_shape: Optional tuple (height, width) for the original image
     
-    Returns:
-        Dict in Ultralytics format
-    """
-    if not geti_result.get('success', False):
-        return geti_result
+#     Returns:
+#         Dict in Ultralytics format
+#     """
+#     if not geti_result.get('success', False):
+#         return geti_result
     
-    geti_results = geti_result.get('results', {})
-    predictions = geti_results.get('results', {}).get('predictions', [])
+#     geti_results = geti_result.get('results', {})
+#     predictions = geti_results.get('results', {}).get('predictions', [])
     
-    ultralytics_detections = []
+#     ultralytics_detections = []
     
-    # Create a simple class name to ID mapping
-    class_names = []
-    for pred in predictions:
-        label = pred.get('label', 'unknown')
-        if label not in class_names:
-            class_names.append(label)
+#     # Create a simple class name to ID mapping
+#     class_names = []
+#     for pred in predictions:
+#         label = pred.get('label', 'unknown')
+#         if label not in class_names:
+#             class_names.append(label)
     
-    class_name_to_id = {name: idx for idx, name in enumerate(sorted(class_names))}
+#     class_name_to_id = {name: idx for idx, name in enumerate(sorted(class_names))}
     
-    for prediction in predictions:
-        shape = prediction.get('shape')
-        if shape and hasattr(shape, 'x') and hasattr(shape, 'y'):
-            # Convert from Rectangle(x, y, width, height) to [x1, y1, x2, y2]
-            x1 = float(shape.x)
-            y1 = float(shape.y)
-            x2 = float(shape.x + shape.width)
-            y2 = float(shape.y + shape.height)
+#     for prediction in predictions:
+#         shape = prediction.get('shape')
+#         if shape and hasattr(shape, 'x') and hasattr(shape, 'y'):
+#             # Convert from Rectangle(x, y, width, height) to [x1, y1, x2, y2]
+#             x1 = float(shape.x)
+#             y1 = float(shape.y)
+#             x2 = float(shape.x + shape.width)
+#             y2 = float(shape.y + shape.height)
             
-            label = prediction.get('label', 'unknown')
-            detection = {
-                'bbox': [x1, y1, x2, y2],
-                'confidence': float(prediction.get('confidence', 0.0)),
-                'class_id': class_name_to_id.get(label, 0),
-                'class_name': label
-            }
-            ultralytics_detections.append(detection)
+#             label = prediction.get('label', 'unknown')
+#             detection = {
+#                 'bbox': [x1, y1, x2, y2],
+#                 'confidence': float(prediction.get('confidence', 0.0)),
+#                 'class_id': class_name_to_id.get(label, 0),
+#                 'class_name': label
+#             }
+#             ultralytics_detections.append(detection)
     
-    # Default image shape if not provided
-    if image_shape is None:
-        image_shape = (1080, 1920)  # Default HD resolution
+#     # Default image shape if not provided
+#     if image_shape is None:
+#         image_shape = (1080, 1920)  # Default HD resolution
     
-    ultralytics_result = {
-        'success': True,
-        'results': {
-            'engine': 'ultralytics',
-            'model_type': 'yolo',
-            'results': [
-                {
-                    'detections': ultralytics_detections,
-                    'image_shape': image_shape
-                }
-            ]
-        },
-        'model_id': geti_result.get('model_id'),
-        'device': geti_result.get('device')
-    }
+#     ultralytics_result = {
+#         'success': True,
+#         'results': {
+#             'engine': 'ultralytics',
+#             'model_type': 'yolo',
+#             'results': [
+#                 {
+#                     'detections': ultralytics_detections,
+#                     'image_shape': image_shape
+#                 }
+#             ]
+#         },
+#         'model_id': geti_result.get('model_id'),
+#         'device': geti_result.get('device')
+#     }
     
-    return ultralytics_result
+#     return ultralytics_result
 
 
-def create_geti_prediction(label: str, confidence: float, bbox: List[float]) -> Dict[str, Any]:
-    """
-    Create a proper Geti prediction using SDK data models.
+# def create_geti_prediction(label: str, confidence: float, bbox: List[float]) -> Dict[str, Any]:
+#     """
+#     Create a proper Geti prediction using SDK data models.
     
-    Args:
-        label: Class label name
-        confidence: Confidence score (0.0 to 1.0)
-        bbox: Bounding box as [x1, y1, x2, y2]
+#     Args:
+#         label: Class label name
+#         confidence: Confidence score (0.0 to 1.0)
+#         bbox: Bounding box as [x1, y1, x2, y2]
     
-    Returns:
-        Dict representing a Geti prediction with proper SDK Rectangle and ScoredLabel
-    """
-    if len(bbox) < 4:
-        raise ValueError("bbox must contain at least 4 values [x1, y1, x2, y2]")
+#     Returns:
+#         Dict representing a Geti prediction with proper SDK Rectangle and ScoredLabel
+#     """
+#     if len(bbox) < 4:
+#         raise ValueError("bbox must contain at least 4 values [x1, y1, x2, y2]")
     
-    x1, y1, x2, y2 = bbox[:4]
-    x = float(x1)
-    y = float(y1)
-    width = float(x2 - x1)
-    height = float(y2 - y1)
+#     x1, y1, x2, y2 = bbox[:4]
+#     x = float(x1)
+#     y = float(y1)
+#     width = float(x2 - x1)
+#     height = float(y2 - y1)
     
-    shape = create_rectangle(x=x, y=y, width=width, height=height)
+#     shape = create_rectangle(x=x, y=y, width=width, height=height)
     
-    if GETI_SDK_AVAILABLE:
-        # Create ScoredLabel using Geti SDK
-        scored_label = ScoredLabel(
-            name=str(label),
-            probability=float(confidence)
-        )
+#     if GETI_SDK_AVAILABLE:
+#         # Create ScoredLabel using Geti SDK
+#         scored_label = ScoredLabel(
+#             name=str(label),
+#             probability=float(confidence)
+#         )
         
-        return {
-            'label': str(label),
-            'confidence': float(confidence),
-            'shape': shape,
-            'scored_label': scored_label  # Include SDK object
-        }
-    else:
-        return {
-            'label': str(label),
-            'confidence': float(confidence),
-            'shape': shape
-        }
+#         return {
+#             'label': str(label),
+#             'confidence': float(confidence),
+#             'shape': shape,
+#             'scored_label': scored_label  # Include SDK object
+#         }
+#     else:
+#         return {
+#             'label': str(label),
+#             'confidence': float(confidence),
+#             'shape': shape
+#         }
 
 
-def create_geti_annotation(predictions: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    Create a Geti-compatible annotation structure from predictions using SDK data models.
+# def create_geti_annotation(predictions: List[Dict[str, Any]]) -> Dict[str, Any]:
+#     """
+#     Create a Geti-compatible annotation structure from predictions using SDK data models.
     
-    Args:
-        predictions: List of prediction dictionaries with label, confidence, and shape
+#     Args:
+#         predictions: List of prediction dictionaries with label, confidence, and shape
     
-    Returns:
-        Dict representing a complete Geti annotation structure with SDK objects when available
-    """
-    if not GETI_SDK_AVAILABLE:
-        logger.warning("Geti SDK not available. Creating simplified annotation structure.")
-        return {
-            'predictions': predictions
-        }
+#     Returns:
+#         Dict representing a complete Geti annotation structure with SDK objects when available
+#     """
+#     if not GETI_SDK_AVAILABLE:
+#         logger.warning("Geti SDK not available. Creating simplified annotation structure.")
+#         return {
+#             'predictions': predictions
+#         }
     
-    # If SDK is available, create proper Annotation objects
-    annotations = []
-    for pred in predictions:
-        shape = pred.get('shape')
-        scored_label = pred.get('scored_label')
+#     # If SDK is available, create proper Annotation objects
+#     annotations = []
+#     for pred in predictions:
+#         shape = pred.get('shape')
+#         scored_label = pred.get('scored_label')
         
-        if shape and scored_label:
-            try:
-                # Create Annotation using the SDK
-                annotation = Annotation(
-                    labels=[scored_label],
-                    shape=shape
-                )
-                annotations.append(annotation)
-            except Exception as e:
-                logger.warning(f"Failed to create Annotation object: {e}. Using fallback.")
-                annotations.append(pred)
-        else:
-            # Fallback to original prediction if missing SDK objects
-            annotations.append(pred)
+#         if shape and scored_label:
+#             try:
+#                 # Create Annotation using the SDK
+#                 annotation = Annotation(
+#                     labels=[scored_label],
+#                     shape=shape
+#                 )
+#                 annotations.append(annotation)
+#             except Exception as e:
+#                 logger.warning(f"Failed to create Annotation object: {e}. Using fallback.")
+#                 annotations.append(pred)
+#         else:
+#             # Fallback to original prediction if missing SDK objects
+#             annotations.append(pred)
     
-    return {
-        'predictions': predictions,  # Keep original format for compatibility
-        'annotations': annotations   # Include SDK objects when available
-    }
+#     return {
+#         'predictions': predictions,  # Keep original format for compatibility
+#         'annotations': annotations   # Include SDK objects when available
+#     }
 
 
 # def normalize_result_format(result: Dict[str, Any], target_format: str = 'ultralytics', image_shape: Optional[tuple] = None) -> Dict[str, Any]:
@@ -431,8 +431,8 @@ def extract_detections_summary(result: Dict[str, Any]) -> Dict[str, Any]:
 __all__ = [
     'Rectangle',
     'ShapeType', 
-    'ultralytics_to_geti',
-    'ultralytics_to_geti_dict',
+    # 'ultralytics_to_geti',
+    # 'ultralytics_to_geti_dict',
     'geti_to_ultralytics', 
     'create_geti_prediction',
     'create_geti_annotation',
