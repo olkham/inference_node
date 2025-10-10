@@ -44,3 +44,6 @@ pip-delete-this-directory.txt
 *.bin
 *.xml
 *.yaml
+InferenceNode/model_repository/models_metadata.json
+InferenceNode/pipelines/pipelines_metadata.json
+.gitignore
