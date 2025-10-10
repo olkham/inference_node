@@ -64,6 +64,14 @@ class HardwareDetector():
         """Check if Apple Neural Engine is available"""
         return self.hardware_info['apple']['neural_engine']
     
+    def has_raspberry_pi_cpu(self) -> bool:
+        """Check if Raspberry Pi CPU is available"""
+        return self.hardware_info['raspberry_pi']['cpu']
+    
+    def has_raspberry_pi_gpu(self) -> bool:
+        """Check if Raspberry Pi GPU (VideoCore) is available"""
+        return self.hardware_info['raspberry_pi']['gpu']
+    
     def get_nvidia_gpu_count(self) -> int:
         """Get number of NVIDIA GPUs"""
         return self.hardware_info['nvidia']['gpu_count']
@@ -303,6 +311,7 @@ class HardwareDetector():
             'nvidia': self._detect_nvidia_hardware(),
             'amd': self._detect_amd_hardware(),
             'apple': self._detect_apple_hardware(),
+            'raspberry_pi': self._detect_raspberry_pi_hardware(),
             # 'generic': self._detect_generic_hardware(),
         }
         
@@ -457,7 +466,9 @@ class HardwareDetector():
                     
                     # Detect CPU
                     if ld == 'cpu':
-                        intel_devices['cpu'] = True
+                        # Verify this is actually an Intel CPU before claiming support
+                        if self._is_intel_cpu():
+                            intel_devices['cpu'] = True
                     
                     # Detect GPU devices - OpenVINO reports them as 'GPU', 'GPU.0', 'GPU.1', etc.
                     if 'gpu' in ld:
@@ -805,6 +816,91 @@ class HardwareDetector():
             pass
         
         return apple_devices
+    
+    def _is_intel_cpu(self) -> bool:
+        """Check if the CPU is actually an Intel CPU"""
+        # Try using cpuinfo library first (most reliable)
+        if HAS_CPUINFO:
+            try:
+                cpu_info_dict = cpuinfo.get_cpu_info()
+                brand = cpu_info_dict.get('brand_raw', '') or cpu_info_dict.get('brand', '')
+                if 'Intel' in brand:
+                    return True
+            except Exception:
+                pass
+
+        # Fallback to system-specific methods
+        try:
+            # Check CPU vendor using platform module first
+            processor_info = platform.processor()
+            if 'Intel' in processor_info:
+                return True
+        except Exception:
+            pass
+
+        # Platform-specific detection
+        try:
+            if platform.system() == "Windows":
+                try:
+                    # Try PowerShell method first
+                    cpu_info = subprocess.check_output(
+                        'powershell "Get-WmiObject -Class Win32_Processor | Select-Object Name"',
+                        shell=True, text=True, timeout=10
+                    )
+                    if "Intel" in cpu_info:
+                        return True
+                except Exception:
+                    try:
+                        # Fallback to environment variables
+                        cpu_info = subprocess.check_output("echo %PROCESSOR_IDENTIFIER%", shell=True, text=True, timeout=5)
+                        if "Intel" in cpu_info:
+                            return True
+                    except Exception:
+                        pass
+            else:
+                # Linux/Mac - check /proc/cpuinfo or similar
+                try:
+                    with open('/proc/cpuinfo', 'r') as f:
+                        cpu_info = f.read()
+                        if "Intel" in cpu_info:
+                            return True
+                except Exception:
+                    # Fallback for Mac or other systems
+                    try:
+                        cpu_info = subprocess.check_output("sysctl -n machdep.cpu.brand_string", shell=True, text=True, timeout=5)
+                        if "Intel" in cpu_info:
+                            return True
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+        return False
+    
+    def _detect_raspberry_pi_hardware(self) -> Dict[str, bool]:
+        """Detect if running on Raspberry Pi hardware"""
+        raspberry_pi_devices = {
+            'cpu': False,
+            'gpu': False  # Raspberry Pi has VideoCore GPU
+        }
+        
+        try:
+            # Check /proc/cpuinfo for Raspberry Pi indicators
+            with open('/proc/cpuinfo', 'r') as f:
+                cpuinfo = f.read().lower()
+                
+            # Check for Broadcom hardware (BCM) or Raspberry Pi model
+            if ('hardware' in cpuinfo and 'bcm' in cpuinfo) or \
+               ('model' in cpuinfo and 'raspberry pi' in cpuinfo):
+                raspberry_pi_devices['cpu'] = True
+                # Raspberry Pi has VideoCore GPU
+                raspberry_pi_devices['gpu'] = True
+                
+        except (FileNotFoundError, PermissionError, OSError):
+            # /proc/cpuinfo not available or not readable
+            pass
+        
+        return raspberry_pi_devices
     
     def get_optimal_device_for_hardware(self) -> str:
         """
