@@ -1,11 +1,8 @@
-import base64
 import sys
 import os
 import tempfile
 import zipfile
-
 from flask import json
-from typing import Optional
 
 
 # Add the project root to the path for imports
@@ -193,7 +190,6 @@ class GetiEngine(BaseInferenceEngine):
 
     def result_to_json(self, results: Any, output_format: str = "dict") -> Any:
         #convert the results to a simple json format
-        #optionally include the original image as base64 encoded string for later post processing by the pipeline
         
         # Convert Prediction object to dictionary
         predictions_dict = None
@@ -224,11 +220,6 @@ class GetiEngine(BaseInferenceEngine):
             "original_image": None
         }
         
-        # TODO: fix inconsistency with image and original_image between ultralytics and geti engines
-        # if original_image is not None:
-        #     success, buffer = cv2.imencode('.jpg', original_image)
-        #     if success:
-        #         json_results["original_image"] = base64.b64encode(buffer.tobytes()).decode('utf-8')
 
         if output_format == "dict":
             return json_results

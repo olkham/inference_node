@@ -1,8 +1,5 @@
-import base64
 import sys
 import os
-import platform
-import subprocess
 
 
 # Add the project root to the path for imports
@@ -75,54 +72,6 @@ class UltralyticsEngine(BaseInferenceEngine):
         # Auto-detect Intel hardware and optimize device string
         self.device = self._optimize_device_for_intel(self.device)
     
-    # def _detect_intel_hardware(self) -> Dict[str, bool]:
-    #     """Detect available Intel hardware components"""
-    #     intel_devices = {
-    #         'cpu': False,
-    #         'gpu': False, 
-    #         'npu': False
-    #     }
-        
-    #     try:
-    #         # Check CPU vendor
-    #         if platform.system() == "Windows":
-    #             cpu_info = subprocess.check_output("wmic cpu get name", shell=True).decode()
-    #             if "Intel" in cpu_info:
-    #                 intel_devices['cpu'] = True
-    #         else:
-    #             # Linux/Mac - check /proc/cpuinfo or similar
-    #             try:
-    #                 with open('/proc/cpuinfo', 'r') as f:
-    #                     cpu_info = f.read()
-    #                     if "Intel" in cpu_info:
-    #                         intel_devices['cpu'] = True
-    #             except:
-    #                 # Fallback for Mac or other systems
-    #                 cpu_info = subprocess.check_output("sysctl -n machdep.cpu.brand_string", shell=True).decode()
-    #                 if "Intel" in cpu_info:
-    #                     intel_devices['cpu'] = True
-    #     except:
-    #         pass
-        
-    #     # Check for Intel GPU (basic detection)
-    #     try:
-    #         if platform.system() == "Windows":
-    #             gpu_info = subprocess.check_output("wmic path win32_VideoController get name", shell=True).decode()
-    #             if "Intel" in gpu_info:
-    #                 intel_devices['gpu'] = True
-    #         else:
-    #             # Linux - check lspci for Intel graphics
-    #             gpu_info = subprocess.check_output("lspci | grep -i vga", shell=True).decode()
-    #             if "Intel" in gpu_info:
-    #                 intel_devices['gpu'] = True
-    #     except:
-    #         pass
-        
-    #     # NPU detection is more complex and hardware-specific
-    #     # For now, assume NPU is available if we have Intel 12th gen or newer
-    #     # This would need more sophisticated detection in a real implementation
-        
-    #     return intel_devices
     
     def _optimize_device_for_intel(self, device: str) -> str:
         """
@@ -134,7 +83,6 @@ class UltralyticsEngine(BaseInferenceEngine):
             device = "CPU"
         
         device = device.upper()
-        # intel_hw = self._detect_intel_hardware()
         
         # Handle device indices (e.g., GPU.0, GPU.1, CPU.0)
         device_base = device
@@ -633,12 +581,6 @@ except Exception as e:
         """Convert the ultralytics prediction to a comprehensive json format
         Supports all YOLO model types: detect, segment, pose, obb, classify
         Optionally include the original image as base64 encoded string for later post processing by the pipeline"""
-
-        # if original_image is not None:
-        #     _, buffer = cv2.imencode('.jpg', original_image)
-        #     original_image_base64 = base64.b64encode(buffer.tobytes()).decode('utf-8')
-        # else:
-        #     original_image_base64 = None
 
         json_results = []
         
