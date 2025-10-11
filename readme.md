@@ -350,6 +350,24 @@ class MyCustomDestination(BaseResultDestination):
 4. Ensure all tests pass
 5. Submit a pull request
 
+## ⚠️ Known Issues
+
+### Intel Geti SDK Compatibility
+- **Issue**: Geti SDK support is limited to Python 3.10-3.13 only
+- **Impact**: Users running Python 3.14+ cannot use Geti integration features
+- **Workaround**: 
+  - Use Python 3.10-3.13 for Geti functionality
+  - Or install in a separate virtual environment with a compatible Python version
+  - Geti SDK is in optional dependencies and won't block installation on incompatible Python versions
+
+### Ultralytics on Intel Hardware
+- **Issue**: On first run with Ultralytics models on Intel hardware, nodes may report failure to start
+- **Cause**: Extra dependencies and model downloads required for OpenVINO conversion are not pre-installed
+- **Impact**: Initial startup may fail or take longer than expected
+- **Workaround**: 
+  - Re-run the node after the initial failure - subsequent starts should work correctly
+  - The required dependencies will be downloaded automatically on first run
+
 ## 📝 License
 
 This project is licensed under the Apache 2.0 License - see the LICENSE file for details.
