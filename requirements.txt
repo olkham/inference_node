@@ -17,7 +17,8 @@ Pillow>=8.0.0
 ultralytics>=8.0.0
 torch>=1.11.0
 torchvision>=0.12.0
-geti-sdk>=2.11.0
+# geti-sdk>=2.11.0  # DISABLED: Requires Python 3.10-3.13, install separately if needed
+# To install geti-sdk: pip install "geti-sdk>=2.11.0" (only on Python 3.10-3.13)
 
 # GPU monitoring (optional) - uses newer nvidia-ml-py instead of deprecated pynvml
 nvidia-ml-py>=12.0.0

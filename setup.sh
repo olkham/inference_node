@@ -155,6 +155,22 @@ else
     exit 1
 fi
 
+# Install Intel Geti SDK conditionally (only for Python 3.10-3.13)
+echo -e "\nInstalling Intel Geti SDK (Python 3.10-3.13 only)..."
+if [ "$PYTHON_MINOR" -le 13 ]; then
+    if [ -f "requirements-geti.txt" ]; then
+        if pip install -r requirements-geti.txt; then
+            print_status "Geti SDK installed successfully"
+        else
+            print_warning "Geti SDK installation failed, continuing without it..."
+        fi
+    else
+        print_warning "requirements-geti.txt not found, skipping Geti SDK installation"
+    fi
+else
+    print_warning "Geti SDK not compatible with Python $PYTHON_VERSION (requires 3.10-3.13)"
+fi
+
 # Print success message
 echo -e "\n${GREEN}==== Setup Complete! ====${NC}\n"
 print_status "Virtual environment is ready and activated"
@@ -165,6 +181,10 @@ echo -e "  source .venv/bin/activate"
 
 echo -e "\n${YELLOW}To start the InferNode application, run:${NC}"
 echo -e "  python main.py"
+
+echo -e "\n${YELLOW}NOTE:${NC} If Geti SDK was skipped due to Python version:"
+echo -e "  - Install manually: pip install 'geti-sdk>=2.11.0' (requires Python 3.10-3.13)"
+echo -e "  - Or use a compatible Python version and re-run setup"
 
 echo -e "\n${YELLOW}To deactivate the virtual environment, run:${NC}"
 echo -e "  deactivate"

@@ -1,0 +1,5 @@
+# Optional Intel Geti SDK requirements
+# This requires Python 3.10-3.13 (not compatible with Python 3.14+)
+# Install with: pip install -r requirements-geti.txt
+
+geti-sdk>=2.11.0

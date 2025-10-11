@@ -100,6 +100,21 @@ if exist "requirements.txt" (
 )
 
 echo.
+echo Installing Intel Geti SDK (Python 3.10-3.13 only)...
+if %PYTHON_MINOR% LEQ 13 (
+    if exist "requirements-geti.txt" (
+        pip install -r requirements-geti.txt
+        if %errorlevel% neq 0 (
+            echo Warning: Geti SDK installation failed, continuing...
+        ) else (
+            echo [OK] Geti SDK installed successfully
+        )
+    )
+) else (
+    echo [SKIP] Geti SDK not compatible with Python %PYTHON_VERSION% (requires 3.10-3.13)
+)
+
+echo.
 echo Installing InferNode in development mode...
 pip install -e .
 if %errorlevel% neq 0 (
@@ -128,6 +143,10 @@ echo 3. Disable discovery: python main.py --no-discovery
 echo 4. Disable telemetry: python main.py --no-telemetry
 echo.
 echo Web interface will be available at: http://localhost:5555
+echo.
+echo NOTE: If Geti SDK was skipped due to Python version, you can:
+echo - Install manually: pip install "geti-sdk>=2.11.0" (requires Python 3.10-3.13)
+echo - Or use a compatible Python version and re-run setup
 echo.
 echo For Docker deployment, see DOCKER.md or run:
 echo    docker-build.bat
