@@ -388,6 +388,32 @@
     animation: fa-spin 2s infinite linear;
 }
 
+/* Test Source Button styling */
+#testSourceBtn {
+    transition: all 0.2s ease;
+}
+
+#testSourceBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#testSourceBtn .fa-spinner {
+    animation: fa-spin 2s infinite linear;
+}
+
+/* Test Source Modal styling */
+#testSourceStream {
+    border: 1px solid #495057;
+    border-radius: 0.375rem;
+    background-color: #212529;
+    min-height: 400px;
+}
+
+#testSourceModal .modal-body {
+    background-color: #1a1d20;
+}
+
 
 </style>
 {% endblock %}
@@ -405,13 +431,13 @@
                     <button type="button" class="btn btn-outline-info btn-sm" id="importPipelineBtn" onclick="importPipeline()">
                         <i class="fas fa-upload me-1"></i>Import Pipeline
                     </button>
-                    <div id="topFormActions" class="d-none">
+                    <div id="topFormActions">
                         <div class="btn-group">
-                            <button type="button" class="btn btn-warning btn-sm" id="topSubmitButton" onclick="document.getElementById('submitButton').click()">
-                                <i class="fas fa-save me-1"></i><span id="topSaveButtonText">Update Pipeline</span>
+                            <button type="button" class="btn btn-primary btn-sm" id="topSubmitButton" onclick="document.getElementById('submitButton').click()">
+                                <i class="fas fa-save me-1"></i><span id="topSaveButtonText">Save Pipeline</span>
                             </button>
-                            <button type="button" class="btn btn-outline-danger btn-sm" id="topResetButton" onclick="cancelEdit()">
-                                <i class="fas fa-times me-1"></i><span id="topResetButtonText">Cancel Edit</span>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="topResetButton" onclick="document.getElementById('resetButton').click()">
+                                <i class="fas fa-undo me-1"></i><span id="topResetButtonText">Reset</span>
                             </button>
                         </div>
                     </div>
@@ -477,6 +503,13 @@
                                     <div class="col-md-8">
                                         <div id="frameSourceConfig">
                                             <div class="text-muted">Select a source type to configure</div>
+                                        </div>
+                                        <!-- Test Source Button -->
+                                        <div class="mt-3">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" id="testSourceBtn" onclick="testFrameSource()" disabled>
+                                                <i class="fas fa-play-circle me-1"></i>Test Source
+                                            </button>
+                                            <small class="text-muted ms-2">Preview this source before creating the full pipeline</small>
                                         </div>
                                     </div>
                                     <div class="col-md-4 d-flex">
@@ -814,6 +847,34 @@
                 <button type="button" class="btn btn-primary" onclick="toggleFullscreen()">
                     <i class="fas fa-expand"></i> Fullscreen
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Source Preview Modal -->
+<div class="modal fade" id="testSourceModal" tabindex="-1" role="dialog" aria-labelledby="testSourceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="testSourceModalLabel">
+                    <i class="fas fa-play-circle me-2"></i>Test Frame Source: <span id="testSourceName">Unknown</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="testSourceContainer">
+                    <img id="testSourceStream" src="" class="preview-stream" style="max-width: 100%; height: auto;" />
+                </div>
+                <div id="testSourceStatus" class="mt-3">
+                    <small class="text-muted">Initializing test...</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="stopTestSourceBtn" onclick="stopTestSource()">
+                    <i class="fas fa-stop"></i> Stop Test
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -1548,6 +1609,213 @@ function updateFrameSourceConfig() {
     `;
     
     configDiv.innerHTML = configHtml;
+    
+    // Enable the Test Source button
+    const testSourceBtn = document.getElementById('testSourceBtn');
+    if (testSourceBtn) {
+        testSourceBtn.disabled = false;
+    }
+}
+
+// Global variable to track test source session
+let activeTestSourceId = null;
+
+// Test Frame Source function
+async function testFrameSource() {
+    const sourceType = document.getElementById('frameSourceType').value;
+    
+    if (!sourceType) {
+        showAlert('warning', 'Please select a frame source type first');
+        return;
+    }
+    
+    // Collect frame source configuration
+    const { config, isValid, missingFields } = collectFrameSourceConfigFromSchema(sourceType);
+    
+    if (!isValid) {
+        showAlert('warning', `Please fill in required fields: ${missingFields.join(', ')}`);
+        return;
+    }
+    
+    const testSourceBtn = document.getElementById('testSourceBtn');
+    const originalHtml = testSourceBtn.innerHTML;
+    
+    // Show loading state
+    testSourceBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Starting...';
+    testSourceBtn.disabled = true;
+    
+    try {
+        // Create a temporary test pipeline configuration with passthrough engine
+        // This creates a minimal pipeline that only captures frames without inference
+        const testConfig = {
+            name: `__test_source_${sourceType}_${Date.now()}`,
+            description: 'Temporary test pipeline - will be auto-deleted',
+            frame_source: {
+                type: sourceType,
+                capture_type: sourceType,
+                config: config
+            },
+            model: {
+                engine_type: 'pass'
+            },
+            inference: {
+                enabled: false,
+                device: 'cpu'
+            },
+            destinations: []
+        };
+        
+        console.log('Creating test pipeline with config:', testConfig);
+        
+        // Create the test pipeline
+        const createResponse = await fetch('/api/pipeline/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testConfig)
+        });
+        
+        if (!createResponse.ok) {
+            const errorData = await createResponse.json().catch(() => ({ error: 'Unknown error' }));
+            throw new Error(errorData.error || `Failed to create test pipeline: ${createResponse.statusText}`);
+        }
+        
+        const createData = await createResponse.json();
+        activeTestSourceId = createData.pipeline_id;
+        
+        console.log('Test pipeline created with ID:', activeTestSourceId);
+        
+        // Start the test pipeline
+        const startResponse = await fetch(`/api/pipeline/${activeTestSourceId}/start`, {
+            method: 'POST'
+        });
+        
+        if (!startResponse.ok) {
+            const errorData = await startResponse.json().catch(() => ({ error: 'Unknown error' }));
+            throw new Error(errorData.error || `Failed to start test pipeline: ${startResponse.statusText}`);
+        }
+        
+        console.log('Test pipeline started successfully');
+        
+        // Wait a moment for the stream to initialize
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Show the test modal
+        showTestSourceModal(sourceType, activeTestSourceId);
+        
+        showAlert('success', 'Test source started successfully');
+        
+    } catch (error) {
+        console.error('Error testing frame source:', error);
+        showAlert('error', `Test failed: ${error.message}`);
+        
+        // Clean up if pipeline was created
+        if (activeTestSourceId) {
+            await stopTestSource();
+            activeTestSourceId = null;
+        }
+    } finally {
+        testSourceBtn.innerHTML = originalHtml;
+        testSourceBtn.disabled = false;
+    }
+}
+
+// Show test source modal
+function showTestSourceModal(sourceType, pipelineId) {
+    const modal = new bootstrap.Modal(document.getElementById('testSourceModal'));
+    
+    // Set source name in modal title
+    document.getElementById('testSourceName').textContent = sourceType;
+    
+    // Set up stream URL
+    const streamImg = document.getElementById('testSourceStream');
+    streamImg.src = `/api/pipeline/${pipelineId}/stream?t=${Date.now()}`;
+    
+    // Update status
+    document.getElementById('testSourceStatus').innerHTML = 
+        '<small class="text-success"><i class="fas fa-check-circle me-1"></i>Test running - adjust settings if needed</small>';
+    
+    // Handle modal close - stop test when modal is closed
+    const modalElement = document.getElementById('testSourceModal');
+    modalElement.addEventListener('hidden.bs.modal', async function() {
+        await stopTestSource();
+    }, { once: true });
+    
+    modal.show();
+}
+
+// Stop test source
+async function stopTestSource() {
+    if (!activeTestSourceId) {
+        return;
+    }
+    
+    const pipelineId = activeTestSourceId;
+    activeTestSourceId = null; // Clear immediately to prevent double-stop
+    
+    const stopBtn = document.getElementById('stopTestSourceBtn');
+    if (!stopBtn) {
+        // Button might not exist if called during cleanup
+        await cleanupTestPipeline(pipelineId);
+        return;
+    }
+    
+    const originalHtml = stopBtn.innerHTML;
+    
+    stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Stopping...';
+    stopBtn.disabled = true;
+    
+    try {
+        await cleanupTestPipeline(pipelineId);
+        
+        // Close modal if open
+        const modal = bootstrap.Modal.getInstance(document.getElementById('testSourceModal'));
+        if (modal) {
+            modal.hide();
+        }
+        
+        console.log('Test source stopped and cleaned up');
+        
+    } catch (error) {
+        console.error('Error stopping test source:', error);
+        // Continue anyway to clean up UI state
+    } finally {
+        if (stopBtn) {
+            stopBtn.innerHTML = originalHtml;
+            stopBtn.disabled = false;
+        }
+    }
+}
+
+// Helper function to cleanup test pipeline
+async function cleanupTestPipeline(pipelineId) {
+    try {
+        // Try to stop the pipeline first
+        const stopResponse = await fetch(`/api/pipeline/${pipelineId}/stop`, {
+            method: 'POST'
+        });
+        
+        if (!stopResponse.ok) {
+            console.warn('Failed to stop test pipeline, attempting delete anyway');
+        }
+        
+        // Small delay to allow pipeline to stop gracefully
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Delete the test pipeline
+        const deleteResponse = await fetch(`/api/pipeline/${pipelineId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!deleteResponse.ok) {
+            console.warn('Failed to delete test pipeline:', pipelineId);
+        }
+        
+    } catch (error) {
+        console.error('Error during test pipeline cleanup:', error);
+        // Don't throw - we want to continue cleanup even if this fails
+    }
 }
 
 // Collect frame source configuration data from form fields based on schema
@@ -2378,11 +2646,24 @@ function disablePipelineTemplateButtons(disable = true) {
 function toggleTopActionButtons(showEditMode = false) {
     const topActions = document.getElementById('topFormActions');
     const importBtn = document.getElementById('importPipelineBtn');
+    const topSubmitButton = document.getElementById('topSubmitButton');
+    const topResetButton = document.getElementById('topResetButton');
+    const topSaveText = document.getElementById('topSaveButtonText');
+    const topResetText = document.getElementById('topResetButtonText');
+    
     if (showEditMode) {
-        if (topActions) topActions.classList.remove('d-none');
+        // Edit mode: show warning colors and update text
+        if (topSubmitButton) topSubmitButton.className = 'btn btn-warning btn-sm';
+        if (topResetButton) topResetButton.className = 'btn btn-outline-danger btn-sm';
+        if (topSaveText) topSaveText.textContent = 'Update Pipeline';
+        if (topResetText) topResetText.textContent = 'Cancel Edit';
         if (importBtn) importBtn.style.display = 'none';
     } else {
-        if (topActions) topActions.classList.add('d-none');
+        // Normal mode: show standard colors and text
+        if (topSubmitButton) topSubmitButton.className = 'btn btn-primary btn-sm';
+        if (topResetButton) topResetButton.className = 'btn btn-outline-secondary btn-sm';
+        if (topSaveText) topSaveText.textContent = 'Save Pipeline';
+        if (topResetText) topResetText.textContent = 'Reset';
         if (importBtn) importBtn.style.display = '';
     }
 }
@@ -2772,13 +3053,6 @@ async function editPipeline(pipelineId) {
 
     // Show top duplicated action buttons and hide import button
     toggleTopActionButtons(true);
-    const importBtn = document.getElementById('importPipelineBtn');
-    if (importBtn) importBtn.style.display = 'none';
-    // Set top button text independently for edit mode
-    const topSaveText = document.getElementById('topSaveButtonText');
-    const topResetText = document.getElementById('topResetButtonText');
-    if (topSaveText) topSaveText.textContent = 'Update Pipeline';
-    if (topResetText) topResetText.textContent = 'Cancel Edit';
         
         // Update form title and buttons
         document.getElementById('saveButtonText').textContent = 'Update Pipeline';
@@ -2923,6 +3197,12 @@ function resetForm(skipConfirmation = false) {
     updateDestinationConfig();
     updateModelInfo();
     resetInferenceEngineSelector(); // Reset inference engine selector
+    
+    // Disable test source button
+    const testSourceBtn = document.getElementById('testSourceBtn');
+    if (testSourceBtn) {
+        testSourceBtn.disabled = true;
+    }
     
     // Reset edit modes
     editingPipelineId = null;
