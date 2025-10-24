@@ -171,6 +171,42 @@ else
     print_warning "Geti SDK not compatible with Python $PYTHON_VERSION (requires 3.10-3.13)"
 fi
 
+# Configure firewall to allow port 8888
+echo -e "\nConfiguring firewall to allow port 8888..."
+
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    # Check if ufw is available
+    if command -v ufw &> /dev/null; then
+        print_status "Detected UFW firewall"
+        if sudo ufw status | grep -q "Status: active"; then
+            if sudo ufw allow 8888/tcp; then
+                print_status "Port 8888 allowed through UFW firewall"
+            else
+                print_warning "Failed to configure UFW firewall"
+            fi
+        else
+            print_warning "UFW is installed but not active, skipping firewall configuration"
+        fi
+    # Check if firewalld is available
+    elif command -v firewall-cmd &> /dev/null; then
+        print_status "Detected firewalld"
+        if sudo systemctl is-active --quiet firewalld; then
+            if sudo firewall-cmd --permanent --add-port=8888/tcp && sudo firewall-cmd --reload; then
+                print_status "Port 8888 allowed through firewalld"
+            else
+                print_warning "Failed to configure firewalld"
+            fi
+        else
+            print_warning "firewalld is installed but not active, skipping firewall configuration"
+        fi
+    else
+        print_warning "No supported firewall detected (UFW or firewalld), skipping firewall configuration"
+    fi
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    print_warning "macOS detected - firewall configuration may require manual setup"
+    print_warning "Port 8888 should be accessible by default on macOS"
+fi
+
 # Print success message
 echo -e "\n${GREEN}==== Setup Complete! ====${NC}\n"
 print_status "Virtual environment is ready and activated"
