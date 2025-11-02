@@ -489,13 +489,13 @@ class InferencePipeline:
             
             while not self._stop_requested:
                 # Check if source is still connected, but for folder sources, don't exit immediately
-                if not self.source.is_connected:
+                if not self.source.isOpened():
                     if is_folder_source:
                         # For folder sources, try to reconnect if disconnected
                         # print(f"Pipeline {self.id}: Folder source disconnected, attempting to reconnect...")
                         try:
                             self.source.connect()
-                            if self.source.is_connected:
+                            if self.source.isOpened():
                                 # print(f"Pipeline {self.id}: Folder source reconnected successfully")
                                 consecutive_empty_reads = 0
                                 continue

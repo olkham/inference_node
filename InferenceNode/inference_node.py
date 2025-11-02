@@ -1787,7 +1787,7 @@ class InferenceNode:
                     # else:
                     #     # Try to create a frame source instance for discovery
                     try:
-                        frame_source = FrameSourceFactory.create(source_type)
+                        frame_source = FrameSourceFactory.create(capture_type=source_type)
                         if hasattr(frame_source, 'discover'):
                             discovered = frame_source.discover()
                             # Ensure the returned data has the expected format

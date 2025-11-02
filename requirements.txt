@@ -6,7 +6,7 @@ paho-mqtt>=1.6.0
 requests>=2.25.0
 
 # FrameSource package from GitHub (PEP 508 syntax)
-FrameSource[full] @ git+https://github.com/olkham/FrameSource.git
+FrameSource[full] @ git+https://github.com/olkham/FrameSource.git@v0.2.4
 
 # Computer vision dependencies
 opencv-python>=4.5.0
