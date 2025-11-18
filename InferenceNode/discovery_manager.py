@@ -172,9 +172,20 @@ class MDNSBroadcaster:
             service_type = "_http._tcp.local."
             service_name = f"InferNode-{self.node_id}.{service_type}"
             
-            # Get local IP address
+            # Get local IP address (using the same method as network scan to get actual network IP)
+            try:
+                # Connect to external address to determine local network IP
+                temp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                temp_sock.connect(("8.8.8.8", 80))
+                local_ip = temp_sock.getsockname()[0]
+                temp_sock.close()
+            except Exception as e:
+                # Fallback to hostname resolution if the above fails
+                self.logger.warning(f"Failed to get network IP via connection test: {e}")
+                hostname = socket.gethostname()
+                local_ip = socket.gethostbyname(hostname)
+            
             hostname = socket.gethostname()
-            local_ip = socket.gethostbyname(hostname)
             
             # Prepare service properties
             properties = {
