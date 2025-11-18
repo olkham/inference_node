@@ -541,6 +541,84 @@ class PipelineManager:
         except Exception as e:
             print(f"Error disabling inference for pipeline {pipeline_id}: {e}")
             return False
+    
+    def set_pipeline_confidence_threshold(self, pipeline_id: str, threshold: float) -> bool:
+        """Set the confidence threshold for a pipeline's inference engine
+        
+        Args:
+            pipeline_id: The pipeline ID
+            threshold: Confidence threshold value (0.0 to 1.0)
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Validate threshold
+            if not 0.0 <= threshold <= 1.0:
+                self.logger.error(f"Invalid confidence threshold {threshold}, must be between 0.0 and 1.0")
+                return False
+            
+            # If pipeline is running, set threshold on the running instance
+            if pipeline_id in self.active_pipelines and 'pipeline_instance' in self.active_pipelines[pipeline_id]:
+                pipeline_instance = self.active_pipelines[pipeline_id]['pipeline_instance']
+                success = pipeline_instance.set_confidence_threshold(threshold)
+                if success:
+                    self.logger.info(f"Set confidence threshold to {threshold} for running pipeline {pipeline_id}")
+                    
+                    # Also update metadata for persistence
+                    if pipeline_id in self.metadata:
+                        if 'model' not in self.metadata[pipeline_id]:
+                            self.metadata[pipeline_id]['model'] = {}
+                        self.metadata[pipeline_id]['model']['conf_threshold'] = threshold
+                        self._save_metadata()
+                    
+                    return True
+                else:
+                    self.logger.error(f"Failed to set confidence threshold for running pipeline {pipeline_id}")
+                    return False
+            else:
+                # Pipeline not running, just update metadata for next run
+                if pipeline_id in self.metadata:
+                    if 'model' not in self.metadata[pipeline_id]:
+                        self.metadata[pipeline_id]['model'] = {}
+                    self.metadata[pipeline_id]['model']['conf_threshold'] = threshold
+                    self._save_metadata()
+                    self.logger.info(f"Updated confidence threshold to {threshold} in metadata for pipeline {pipeline_id}")
+                    return True
+                else:
+                    self.logger.error(f"Pipeline {pipeline_id} not found")
+                    return False
+                    
+        except Exception as e:
+            self.logger.error(f"Error setting confidence threshold for pipeline {pipeline_id}: {e}")
+            return False
+    
+    def get_pipeline_confidence_threshold(self, pipeline_id: str) -> Optional[float]:
+        """Get the confidence threshold for a pipeline
+        
+        Args:
+            pipeline_id: The pipeline ID
+            
+        Returns:
+            float: Current confidence threshold, or None if not available
+        """
+        try:
+            # If pipeline is running, get from running instance
+            if pipeline_id in self.active_pipelines and 'pipeline_instance' in self.active_pipelines[pipeline_id]:
+                pipeline_instance = self.active_pipelines[pipeline_id]['pipeline_instance']
+                threshold = pipeline_instance.get_confidence_threshold()
+                if threshold is not None:
+                    return threshold
+            
+            # Otherwise get from metadata
+            if pipeline_id in self.metadata:
+                model_config = self.metadata[pipeline_id].get('model', {})
+                return model_config.get('conf_threshold', 0.25)  # Default to 0.25
+            
+            return None
+        except Exception as e:
+            self.logger.error(f"Error getting confidence threshold for pipeline {pipeline_id}: {e}")
+            return None
 
     def enable_pipeline_publisher(self, pipeline_id: str, publisher_id: str) -> bool:
         """Enable a specific publisher for a pipeline"""

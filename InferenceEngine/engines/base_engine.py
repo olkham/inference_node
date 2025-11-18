@@ -14,6 +14,7 @@ class BaseInferenceEngine(ABC):
         
         self.model_path = kwargs.get('model_path', None)
         self.device = kwargs.get('device', "CPU")  # Default device
+        self.conf_threshold = kwargs.get('conf_threshold', 0.25)  # Default confidence threshold
 
         self.is_loaded = False
         self.type = self.__class__.__name__
@@ -53,6 +54,8 @@ class BaseInferenceEngine(ABC):
         
         # Delegate to subclass implementation
         return self._load_model(model_file, device)
+    
+
     
     @abstractmethod
     def _load_model(self, model_file: str, device: str) -> bool:
@@ -137,8 +140,30 @@ class BaseInferenceEngine(ABC):
             "display_name": self.__class__.display_name,
             "device": self.device,
             "is_loaded": self.is_loaded,
-            "model_path": self.model_path
+            "model_path": self.model_path,
+            "conf_threshold": self.conf_threshold
         }
+    
+    def set_confidence_threshold(self, threshold: float) -> None:
+        """
+        Set the confidence threshold for predictions.
+        
+        Args:
+            threshold: Confidence threshold value (0.0 to 1.0)
+        """
+        if not 0.0 <= threshold <= 1.0:
+            raise ValueError(f"Confidence threshold must be between 0.0 and 1.0, got {threshold}")
+        self.conf_threshold = threshold
+        self.logger.info(f"Confidence threshold set to {threshold}")
+    
+    def get_confidence_threshold(self) -> float:
+        """
+        Get the current confidence threshold.
+        
+        Returns:
+            float: Current confidence threshold value
+        """
+        return self.conf_threshold
 
     def __str__(self):
         info = self.get_info()

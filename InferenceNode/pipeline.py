@@ -414,6 +414,45 @@ class InferencePipeline:
         """Check if inference is enabled"""
         return self._inference_enabled
     
+    def set_confidence_threshold(self, threshold: float) -> bool:
+        """Set the confidence threshold for the inference engine
+        
+        Args:
+            threshold: Confidence threshold value (0.0 to 1.0)
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            if not 0.0 <= threshold <= 1.0:
+                print(f"Pipeline {self.id}: Invalid confidence threshold {threshold}, must be between 0.0 and 1.0")
+                return False
+            
+            if self.inference_engine and hasattr(self.inference_engine, 'set_confidence_threshold'):
+                self.inference_engine.set_confidence_threshold(threshold)
+                print(f"Pipeline {self.id}: Confidence threshold set to {threshold}")
+                return True
+            else:
+                print(f"Pipeline {self.id}: Inference engine does not support confidence threshold")
+                return False
+        except Exception as e:
+            print(f"Pipeline {self.id}: Error setting confidence threshold: {e}")
+            return False
+    
+    def get_confidence_threshold(self) -> Optional[float]:
+        """Get the current confidence threshold from the inference engine
+        
+        Returns:
+            float: Current confidence threshold, or None if not available
+        """
+        try:
+            if self.inference_engine and hasattr(self.inference_engine, 'get_confidence_threshold'):
+                return self.inference_engine.get_confidence_threshold()
+            return None
+        except Exception as e:
+            print(f"Pipeline {self.id}: Error getting confidence threshold: {e}")
+            return None
+    
     def set_thumbnail_path(self, thumbnail_dir: str):
         """Set the directory where thumbnails will be saved"""
         if not os.path.exists(thumbnail_dir):

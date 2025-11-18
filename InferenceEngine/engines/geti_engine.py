@@ -64,6 +64,7 @@ class GetiEngine(BaseInferenceEngine):
         super().__init__(**kwargs)
         self.model_path = kwargs.get('model_path', None)
         self.device = kwargs.get('device', "CPU")  # Default device
+        self.conf_threshold = kwargs.get('conf_threshold', 0.25)  # Default confidence threshold
         self.output_format = kwargs.get('output_format', "geti")  # Default output format
         self.deployment = None
 
@@ -83,6 +84,10 @@ class GetiEngine(BaseInferenceEngine):
             # Load deployment
             self.deployment = Deployment.from_folder(model_path)
             self.deployment.load_inference_models(device=self.device)
+            
+            # Set confidence threshold on all models in the deployment
+            self._apply_confidence_threshold()
+            
             self.model_path = model_path
             
             self.logger.info("Geti SDK deployment loaded successfully")
@@ -95,6 +100,38 @@ class GetiEngine(BaseInferenceEngine):
             self.logger.error(f"Error loading with Geti SDK: {e}")
             return False
 
+    def _apply_confidence_threshold(self):
+        """Apply confidence threshold to all models in the Geti deployment"""
+        if self.deployment is None:
+            return
+        
+        try:
+            # Apply threshold to all models in the deployment
+            if hasattr(self.deployment, 'models'):
+                for model in self.deployment.models:
+                    if hasattr(model, '_inference_model') and hasattr(model._inference_model, 'confidence_threshold'):
+                        model._inference_model.confidence_threshold = self.conf_threshold
+                    if hasattr(model, '_converter') and hasattr(model._converter, 'confidence_threshold'):
+                        model._converter.confidence_threshold = self.conf_threshold
+                
+                self.logger.debug(f"Applied confidence threshold {self.conf_threshold} to {len(self.deployment.models)} model(s)")
+        except Exception as e:
+            self.logger.warning(f"Could not apply confidence threshold to Geti models: {e}")
+    
+    def set_confidence_threshold(self, threshold: float) -> None:
+        """
+        Set the confidence threshold for predictions.
+        Updates both the instance variable and the Geti deployment models.
+        
+        Args:
+            threshold: Confidence threshold value (0.0 to 1.0)
+        """
+        # Call parent method to validate and set instance variable
+        super().set_confidence_threshold(threshold)
+        
+        # Apply to Geti deployment models if loaded
+        self._apply_confidence_threshold()
+    
     def _load_model(self, model_file: str, device: str = "CPU") -> bool:
 
         if device is None:
@@ -138,7 +175,11 @@ class GetiEngine(BaseInferenceEngine):
             return None
         
     def _postprocess(self, raw_output: Any) -> Any:
-        """Postprocess Geti results"""
+        """
+        Postprocess Geti results.
+        Note: Confidence filtering is now done at inference time via deployment model settings,
+        so this method just returns the raw output.
+        """
         return raw_output
     
     def cleanup(self):

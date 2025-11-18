@@ -2186,6 +2186,65 @@ class InferenceNode:
                 self.logger.error(f"Disable pipeline inference error: {str(e)}")
                 return jsonify({'error': str(e)}), 500
         
+        @self.app.route('/api/pipeline/<pipeline_id>/inference/confidence-threshold', methods=['GET'])
+        def get_pipeline_confidence_threshold(pipeline_id):
+            """Get the confidence threshold for a pipeline"""
+            try:
+                if not self.pipeline_manager:
+                    return jsonify({'error': 'Pipeline manager not available'}), 503
+                
+                threshold = self.pipeline_manager.get_pipeline_confidence_threshold(pipeline_id)
+                if threshold is None:
+                    return jsonify({'error': 'Pipeline not found or threshold not available'}), 404
+                
+                return jsonify({
+                    'pipeline_id': pipeline_id,
+                    'conf_threshold': threshold
+                })
+                
+            except Exception as e:
+                self.logger.error(f"Get pipeline confidence threshold error: {str(e)}")
+                return jsonify({'error': str(e)}), 500
+        
+        @self.app.route('/api/pipeline/<pipeline_id>/inference/confidence-threshold', methods=['POST'])
+        def set_pipeline_confidence_threshold(pipeline_id):
+            """Set the confidence threshold for a pipeline"""
+            try:
+                if not self.pipeline_manager:
+                    return jsonify({'error': 'Pipeline manager not available'}), 503
+                
+                data = request.get_json()
+                if not data or 'conf_threshold' not in data:
+                    return jsonify({'error': 'Missing conf_threshold in request body'}), 400
+                
+                threshold = data['conf_threshold']
+                
+                # Validate threshold type and range
+                try:
+                    threshold = float(threshold)
+                except (ValueError, TypeError):
+                    return jsonify({'error': 'conf_threshold must be a number'}), 400
+                
+                if not 0.0 <= threshold <= 1.0:
+                    return jsonify({'error': 'conf_threshold must be between 0.0 and 1.0'}), 400
+                
+                success = self.pipeline_manager.set_pipeline_confidence_threshold(pipeline_id, threshold)
+                if not success:
+                    return jsonify({'error': 'Failed to set confidence threshold'}), 500
+                
+                self.logger.info(f"Pipeline {pipeline_id} confidence threshold set to {threshold}")
+                
+                return jsonify({
+                    'status': 'success',
+                    'pipeline_id': pipeline_id,
+                    'conf_threshold': threshold,
+                    'message': f'Confidence threshold set to {threshold}'
+                })
+                
+            except Exception as e:
+                self.logger.error(f"Set pipeline confidence threshold error: {str(e)}")
+                return jsonify({'error': str(e)}), 500
+        
         @self.app.route('/api/pipeline/<pipeline_id>/publisher/<publisher_id>/enable', methods=['POST'])
         def enable_pipeline_publisher(pipeline_id, publisher_id):
             """Enable a specific publisher for a pipeline"""

@@ -43,6 +43,7 @@ class UltralyticsEngine(BaseInferenceEngine):
         super().__init__(**kwargs)
         self.model_path = kwargs.get('model_path', None)
         self.device = kwargs.get('device', "CPU")  # Default device
+        self.conf_threshold = kwargs.get('conf_threshold', 0.25)  # Default confidence threshold
         self.output_format = kwargs.get('output_format', "geti")  # Default output format
         self.task = kwargs.get('task', 'detect')  # Default task for YOLO models
         self.deployment = None
@@ -474,10 +475,11 @@ except Exception as e:
                 inference_device = 'cpu'
         
         # Use the device parameter in inference for Intel OpenVINO
+        # Apply confidence threshold during inference
         if self.use_openvino or inference_device.startswith('intel:'):
-            results = self.model(preprocessed_input, device=inference_device.lower(), verbose=False)
+            results = self.model(preprocessed_input, device=inference_device.lower(), verbose=False, conf=self.conf_threshold)
         else:
-            results = self.model(preprocessed_input, device=inference_device, verbose=False)
+            results = self.model(preprocessed_input, device=inference_device, verbose=False, conf=self.conf_threshold)
         
         return results
     
