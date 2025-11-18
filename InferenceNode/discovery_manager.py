@@ -16,6 +16,221 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
+# Try to import zeroconf for mDNS support
+try:
+    from zeroconf import Zeroconf, ServiceInfo, ServiceBrowser, ServiceListener as ZeroconfServiceListener
+    MDNS_AVAILABLE = True
+    # Use the real ServiceListener from zeroconf
+    ServiceListenerBase = ZeroconfServiceListener
+except ImportError:
+    MDNS_AVAILABLE = False
+    # Create dummy base class if zeroconf not available
+    class ServiceListenerBase:  # type: ignore
+        """Dummy ServiceListener base class when zeroconf is not available"""
+        pass
+
+
+class MDNSServiceListener(ServiceListenerBase):  # type: ignore
+    """Listener for mDNS service discovery events"""
+    
+    def __init__(self, discovery_manager):
+        self.discovery_manager = discovery_manager
+        self.logger = logging.getLogger(self.__class__.__name__)
+    
+    def add_service(self, zc, service_type: str, name: str) -> None:
+        """Called when a service is discovered"""
+        if not MDNS_AVAILABLE:
+            return
+        info = zc.get_service_info(service_type, name)
+        if info:
+            self._process_service_info(info, name)
+    
+    def update_service(self, zc, service_type: str, name: str) -> None:
+        """Called when a service is updated"""
+        if not MDNS_AVAILABLE:
+            return
+        info = zc.get_service_info(service_type, name)
+        if info:
+            self._process_service_info(info, name)
+    
+    def remove_service(self, zc, service_type: str, name: str) -> None:
+        """Called when a service is removed"""
+        # Extract node_id from service name
+        node_id = name.split('.')[0] if '.' in name else name
+        if node_id in self.discovery_manager.discovered_nodes:
+            node_name = self.discovery_manager.discovered_nodes[node_id].node_name
+            self.discovery_manager.discovered_nodes[node_id].mark_offline()
+            self.logger.info(f"mDNS service removed: {node_name} ({node_id})")
+    
+    def _process_service_info(self, info, name: str):
+        """Process discovered service information"""
+        try:
+            # Filter for InferNode services only (service name starts with "InferNode-")
+            if not name.startswith('InferNode-'):
+                return
+            
+            # Extract properties from mDNS service
+            properties = {}
+            if info.properties:
+                for key, value in info.properties.items():
+                    try:
+                        properties[key.decode('utf-8')] = value.decode('utf-8')
+                    except:
+                        pass
+            
+            # Only process if this is an InferNode service (has node_id property)
+            if 'node_id' not in properties:
+                return
+            
+            # Get IP address
+            if info.addresses:
+                ip_address = socket.inet_ntoa(info.addresses[0])
+            else:
+                self.logger.warning(f"No IP address for service {name}")
+                return
+            
+            port = info.port
+            node_id = properties.get('node_id', name.split('-')[1].split('.')[0] if '-' in name else name.split('.')[0])
+            
+            # Skip our own service
+            if node_id == self.discovery_manager.node_id:
+                return
+            
+            # Build node data from mDNS properties
+            node_data = {
+                'node_id': node_id,
+                'node_name': properties.get('node_name', 'Unknown Node'),
+                'api_port': port,
+                'platform': properties.get('platform', 'Unknown'),
+                'cpu_count': int(properties.get('cpu_count', 0)),
+                'memory_gb': float(properties.get('memory_gb', 0)),
+                'available_engines': json.loads(properties.get('available_engines', '[]')),
+                'gpu': json.loads(properties.get('gpu', '{"available": false}'))
+            }
+            
+            # Add or update discovered node
+            if node_id in self.discovery_manager.discovered_nodes:
+                self.discovery_manager.discovered_nodes[node_id].update_status()
+                self.logger.debug(f"Updated mDNS node: {node_id} at {ip_address}:{port}")
+            else:
+                self.discovery_manager.discovered_nodes[node_id] = DiscoveredNode(
+                    node_data, ip_address, port
+                )
+                self.logger.info(f"Discovered mDNS node: {node_data['node_name']} ({node_id}) at {ip_address}:{port}")
+                
+                # Probe the new node for detailed information
+                threading.Thread(
+                    target=self.discovery_manager._probe_node,
+                    args=(node_id,),
+                    daemon=True
+                ).start()
+        
+        except Exception as e:
+            self.logger.error(f"Error processing mDNS service {name}: {str(e)}")
+
+
+class MDNSBroadcaster:
+    """Handles mDNS service broadcasting for node discovery"""
+    
+    def __init__(self, node_id: str, node_info: Dict[str, Any], service_port: int):
+        """
+        Initialize mDNS broadcaster
+        
+        Args:
+            node_id: Unique identifier for this node
+            node_info: Dictionary containing node information
+            service_port: Port number where the service is running
+        """
+        self.node_id = node_id
+        self.node_info = node_info
+        self.service_port = service_port
+        self.zeroconf = None
+        self.service_info = None
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.running = False
+        
+        if not MDNS_AVAILABLE:
+            self.logger.warning("zeroconf package not available. mDNS broadcasting disabled.")
+            self.logger.info("Install with: pip install zeroconf")
+    
+    def start(self):
+        """Start mDNS service broadcasting"""
+        if not MDNS_AVAILABLE:
+            self.logger.warning("Cannot start mDNS: zeroconf package not installed")
+            return False
+        
+        if self.running:
+            self.logger.warning("mDNS broadcaster already running")
+            return True
+        
+        try:
+            from zeroconf import Zeroconf, ServiceInfo
+            
+            self.zeroconf = Zeroconf()
+            
+            # Service type for InferNode discovery (using standard HTTP service type)
+            service_type = "_http._tcp.local."
+            service_name = f"InferNode-{self.node_id}.{service_type}"
+            
+            # Get local IP address
+            hostname = socket.gethostname()
+            local_ip = socket.gethostbyname(hostname)
+            
+            # Prepare service properties
+            properties = {
+                'node_id': self.node_id,
+                'node_name': self.node_info.get('node_name', 'Unknown Node'),
+                'platform': self.node_info.get('platform', 'Unknown'),
+                'cpu_count': str(self.node_info.get('cpu_count', 0)),
+                'memory_gb': str(self.node_info.get('memory_gb', 0)),
+                'available_engines': json.dumps(self.node_info.get('available_engines', [])),
+                'gpu': json.dumps(self.node_info.get('gpu', {'available': False}))
+            }
+            
+            # Create service info
+            self.service_info = ServiceInfo(
+                service_type,
+                service_name,
+                addresses=[socket.inet_aton(local_ip)],
+                port=self.service_port,
+                properties=properties,
+                server=f"{hostname}.local."
+            )
+            
+            # Register service
+            self.zeroconf.register_service(self.service_info)
+            self.running = True
+            
+            self.logger.info(f"mDNS service registered: {service_name} on {local_ip}:{self.service_port}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to start mDNS broadcaster: {str(e)}")
+            return False
+    
+    def stop(self):
+        """Stop mDNS service broadcasting"""
+        if not self.running:
+            return
+        
+        try:
+            if self.zeroconf and self.service_info:
+                self.zeroconf.unregister_service(self.service_info)
+                self.zeroconf.close()
+            
+            self.running = False
+            self.logger.info("mDNS service unregistered")
+            
+        except Exception as e:
+            self.logger.error(f"Error stopping mDNS broadcaster: {str(e)}")
+    
+    def update_info(self, node_info: Dict[str, Any]):
+        """Update node information and re-register service"""
+        self.node_info = node_info
+        if self.running:
+            self.stop()
+            self.start()
+
 
 class DiscoveredNode:
     """Information about a discovered inference node"""
@@ -98,16 +313,30 @@ class DiscoveryManager:
         self.broadcast_thread = None
         self.broadcast_interval = 10.0  # seconds
         
+        # mDNS components
+        self.mdns_broadcaster = None
+        self.mdns_browser = None
+        self.mdns_listener = None
+        self.zeroconf = None
+        self.use_mdns = MDNS_AVAILABLE  # Enable mDNS if available
+        
         # Setup logging
         self.logger = logging.getLogger(self.__class__.__name__)
         
-        self.logger.info(f"Discovery Manager initialized on port {self.discovery_port}")
+        if MDNS_AVAILABLE:
+            self.logger.info(f"Discovery Manager initialized on port {self.discovery_port} with mDNS support")
+        else:
+            self.logger.info(f"Discovery Manager initialized on port {self.discovery_port} (UDP only - install zeroconf for mDNS)")
     
     def set_node_info(self, node_id: str, node_info: Dict[str, Any]):
         """Set the node information for broadcasting"""
         self.node_id = node_id
         self.node_info = node_info
         self.logger.debug(f"Node info updated for discovery: {node_info.get('node_name', 'Unknown')} ({node_id})")
+        
+        # Update mDNS broadcaster if it exists
+        if self.mdns_broadcaster:
+            self.mdns_broadcaster.update_info(node_info)
     
     def set_broadcast_interval(self, interval: float):
         """Set the broadcast interval in seconds"""
@@ -126,22 +355,79 @@ class DiscoveryManager:
         self.discovery_thread = threading.Thread(target=self._discovery_worker, daemon=True)
         self.discovery_thread.start()
         
+        # Start mDNS if available and we have node info
+        if self.use_mdns and self.node_id and self.node_info:
+            self._start_mdns()
+        
         # Start broadcast thread if we have node info to broadcast
         if self.node_id and self.node_info:
             self.broadcast_thread = threading.Thread(target=self._broadcast_loop, daemon=True)
             self.broadcast_thread.start()
-            self.logger.info(f"Started node discovery with listening and broadcasting on port {self.discovery_port}")
+            mode = "mDNS + UDP" if self.use_mdns else "UDP"
+            self.logger.info(f"Started node discovery with {mode} broadcasting on port {self.discovery_port}")
         else:
             self.logger.info(f"Started node discovery (listening only) on port {self.discovery_port}")
     
     def stop_discovery(self):
         """Stop discovery service"""
         self.discovery_running = False
+        
+        # Stop mDNS
+        self._stop_mdns()
+        
         if self.discovery_thread:
             self.discovery_thread.join(timeout=2)
         if self.broadcast_thread:
             self.broadcast_thread.join(timeout=2)
         self.logger.info("Stopped node discovery")
+    
+    def _start_mdns(self):
+        """Start mDNS service broadcasting and browsing"""
+        if not MDNS_AVAILABLE or not self.node_id:
+            return
+        
+        try:
+            from zeroconf import Zeroconf, ServiceBrowser
+            
+            # Start mDNS broadcaster
+            api_port = self.node_info.get('api_port', 5000)
+            self.mdns_broadcaster = MDNSBroadcaster(self.node_id, self.node_info, api_port)
+            if self.mdns_broadcaster.start():
+                self.logger.info("mDNS broadcaster started")
+            
+            # Start mDNS browser to discover other nodes
+            self.zeroconf = Zeroconf()
+            self.mdns_listener = MDNSServiceListener(self)
+            self.mdns_browser = ServiceBrowser(
+                self.zeroconf,
+                "_http._tcp.local.",
+                self.mdns_listener
+            )
+            self.logger.info("mDNS browser started")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to start mDNS: {str(e)}")
+    
+    def _stop_mdns(self):
+        """Stop mDNS service broadcasting and browsing"""
+        try:
+            if self.mdns_broadcaster:
+                self.mdns_broadcaster.stop()
+                self.mdns_broadcaster = None
+            
+            if self.mdns_browser:
+                self.mdns_browser.cancel()
+                self.mdns_browser = None
+            
+            if self.zeroconf:
+                self.zeroconf.close()
+                self.zeroconf = None
+            
+            if self.mdns_listener:
+                self.mdns_listener = None
+                
+        except Exception as e:
+            self.logger.error(f"Error stopping mDNS: {str(e)}")
     
     def _discovery_worker(self):
         """UDP discovery worker thread"""
