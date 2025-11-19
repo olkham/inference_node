@@ -3937,9 +3937,10 @@ function updateFrameSourceSelector(frameSourceTypes) {
     const html = sortedTypes.map(type => {
         const availabilityClass = type.available ? '' : ' disabled';
         const availabilityTitle = type.available ? '' : ` title="Not available: ${type.error || 'Dependencies missing'}"`;
+        const hasDiscovery = type.has_discovery || false;
         
         return `
-            <div class="button-selector-item${availabilityClass}" data-value="${type.type}" 
+            <div class="button-selector-item${availabilityClass}" data-value="${type.type}" data-has-discovery="${hasDiscovery}"
                  onclick="${type.available ? `selectFrameSource('${type.type}')` : ''}"${availabilityTitle}>
                 <div class="icon"><i class="${type.icon}"></i></div>
                 <div class="label">${type.name}</div>
@@ -4092,10 +4093,17 @@ function toggleDiscoverDevicesButton(sourceType) {
     const infoBox = document.getElementById('discoveredDeviceInfo');
     const infoContent = document.getElementById('discoveredDeviceInfoContent');
     
-    // Show box for source types that support device discovery
-    const supportedTypes = ['webcam', 'audio_spectrogram', 'basler', 'ximea', 'realsense', 'huateng'];
+    if (!sourceType) {
+        infoBox.style.display = 'none';
+        return;
+    }
     
-    if (sourceType && supportedTypes.includes(sourceType)) {
+    // Check if the selected frame source has discovery support
+    const selector = document.getElementById('frameSourceSelector');
+    const selectedButton = selector.querySelector(`[data-value="${sourceType}"]`);
+    const hasDiscovery = selectedButton?.getAttribute('data-has-discovery') === 'true';
+    
+    if (hasDiscovery) {
         infoBox.style.display = 'block';
         // Reset content to initial state when source type changes
         infoContent.innerHTML = '<div class="text-muted">Click "Discover" to find available devices</div>';
@@ -4175,56 +4183,20 @@ function displayAllDevicesInfo(sourceType, devicesArray) {
         return;
     }
     
-    // Define which properties to show for each source type
-    const displayMappings = {
-        'webcam': [
-            { key: 'name', label: 'Name' },
-            { key: 'index', label: 'Index' },
-            // { key: 'id', label: 'ID' },
-            { key: 'width', label: 'Width' },
-            { key: 'height', label: 'Height' },
-            { key: 'fps', label: 'FPS' },
-            { key: 'backend_name', label: 'Backend' }
-        ],
-        'audio_spectrogram': [
-            { key: 'name', label: 'Name' },
-            { key: 'device_id', label: 'Device ID' },
-            { key: 'id', label: 'ID' },
-            { key: 'index', label: 'Index' },
-            { key: 'sample_rate', label: 'Sample Rate' },
-            { key: 'channels', label: 'Channels' },
-            { key: 'max_input_channels', label: 'Max Channels' }
-        ],
-        'basler': [
-            { key: 'name', label: 'Name' },
-            { key: 'model_name', label: 'Model' },
-            { key: 'serial_number', label: 'Serial' },
-            { key: 'device_id', label: 'Device ID' },
-            { key: 'vendor', label: 'Vendor' }
-        ],
-        'ximea': [
-            { key: 'name', label: 'Name' },
-            { key: 'model_name', label: 'Model' },
-            { key: 'serial_number', label: 'Serial' },
-            { key: 'device_id', label: 'Device ID' },
-            { key: 'vendor', label: 'Vendor' }
-        ],
-        'realsense': [
-            { key: 'name', label: 'Name' },
-            { key: 'serial_number', label: 'Serial' },
-            { key: 'product_id', label: 'Product ID' },
-            { key: 'firmware_version', label: 'Firmware' }
-        ]
-    };
+    // Get display fields from frame source metadata (if available), otherwise use defaults
+    const frameSourceMeta = availableFrameSourceTypes.find(ft => ft.type === sourceType);
+    let fieldsToShow = frameSourceMeta?.display_fields;
     
-    // Get the display mapping for this source type, or use a generic one
-    const fieldsToShow = displayMappings[sourceType] || [
-        { key: 'name', label: 'Name' },
-        { key: 'id', label: 'ID' },
-        { key: 'device_id', label: 'Device ID' },
-        { key: 'index', label: 'Index' },
-        { key: 'serial_number', label: 'Serial' }
-    ];
+    // Fallback to generic fields if not specified in metadata
+    if (!fieldsToShow || fieldsToShow.length === 0) {
+        fieldsToShow = [
+            { key: 'name', label: 'Name' },
+            { key: 'id', label: 'ID' },
+            { key: 'device_id', label: 'Device ID' },
+            { key: 'index', label: 'Index' },
+            { key: 'serial_number', label: 'Serial' }
+        ];
+    }
     
     // Build HTML for all devices
     let html = '';
