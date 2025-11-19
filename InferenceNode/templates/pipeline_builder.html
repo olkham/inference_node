@@ -1992,6 +1992,32 @@ function generateFormFieldsFromSchema(schema, prefix = '') {
                     </div>`;
                 break;
                 
+            case 'file':
+                // File upload field with target input field for path
+                const targetFieldId = field.target_field || 'source'; // Default to 'source' for video file path
+                const acceptAttr = field.accept ? ` accept="${field.accept}"` : '';
+                const uploadEndpoint = field.upload_endpoint || '/api/media/upload';
+                
+                fieldHtml = `
+                    <div class="col-12">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}</label>
+                        <div class="input-group">
+                            <input type="file" class="form-control form-control-sm" id="${fieldId}" 
+                                   ${acceptAttr}${required}
+                                   data-upload-endpoint="${uploadEndpoint}"
+                                   data-target-field="${targetFieldId}"
+                                   onchange="handleFileUpload(this)"
+                                   title="${field.description || ''}">
+                            <button class="btn btn-outline-secondary btn-sm" type="button" 
+                                    id="${fieldId}_btn" disabled>
+                                <i class="fas fa-upload"></i> Upload
+                            </button>
+                        </div>
+                        <div id="${fieldId}_status" class="form-text"></div>
+                        ${field.description ? `<div class="form-text mt-1">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
             case 'info':
                 fieldHtml = `
                     <div class="col-12">
@@ -2155,6 +2181,32 @@ function generateFormFieldsWithDiscoveredDevices(schema, discoveredDevices = [])
                                   placeholder="${field.placeholder || ''}" ${required}
                                   title="${field.description || ''}"></textarea>
                         ${field.description ? `<div class="form-text">${field.description}</div>` : ''}
+                    </div>`;
+                break;
+                
+            case 'file':
+                // File upload field with target input field for path
+                const targetFieldIdFile = field.target_field || 'source'; // Default to 'source' for video file path
+                const acceptAttrFile = field.accept ? ` accept="${field.accept}"` : '';
+                const uploadEndpointFile = field.upload_endpoint || '/api/media/upload';
+                
+                fieldHtml = `
+                    <div class="col-12">
+                        <label for="${fieldId}" class="form-label">${field.label}${requiredStar}</label>
+                        <div class="input-group">
+                            <input type="file" class="form-control form-control-sm" id="${fieldId}" 
+                                   ${acceptAttrFile}${required}
+                                   data-upload-endpoint="${uploadEndpointFile}"
+                                   data-target-field="${targetFieldIdFile}"
+                                   onchange="handleFileUpload(this)"
+                                   title="${field.description || ''}">
+                            <button class="btn btn-outline-secondary btn-sm" type="button" 
+                                    id="${fieldId}_btn" disabled>
+                                <i class="fas fa-upload"></i> Upload
+                            </button>
+                        </div>
+                        <div id="${fieldId}_status" class="form-text"></div>
+                        ${field.description ? `<div class="form-text mt-1">${field.description}</div>` : ''}
                     </div>`;
                 break;
                 
@@ -3937,9 +3989,10 @@ function updateFrameSourceSelector(frameSourceTypes) {
     const html = sortedTypes.map(type => {
         const availabilityClass = type.available ? '' : ' disabled';
         const availabilityTitle = type.available ? '' : ` title="Not available: ${type.error || 'Dependencies missing'}"`;
+        const hasDiscovery = type.has_discovery || false;
         
         return `
-            <div class="button-selector-item${availabilityClass}" data-value="${type.type}" 
+            <div class="button-selector-item${availabilityClass}" data-value="${type.type}" data-has-discovery="${hasDiscovery}"
                  onclick="${type.available ? `selectFrameSource('${type.type}')` : ''}"${availabilityTitle}>
                 <div class="icon"><i class="${type.icon}"></i></div>
                 <div class="label">${type.name}</div>
@@ -4092,16 +4145,115 @@ function toggleDiscoverDevicesButton(sourceType) {
     const infoBox = document.getElementById('discoveredDeviceInfo');
     const infoContent = document.getElementById('discoveredDeviceInfoContent');
     
-    // Show box for source types that support device discovery
-    const supportedTypes = ['webcam', 'audio_spectrogram', 'basler', 'ximea', 'realsense', 'huateng'];
+    if (!sourceType) {
+        infoBox.style.display = 'none';
+        return;
+    }
     
-    if (sourceType && supportedTypes.includes(sourceType)) {
+    // Check if the selected frame source has discovery support
+    const selector = document.getElementById('frameSourceSelector');
+    const selectedButton = selector.querySelector(`[data-value="${sourceType}"]`);
+    const hasDiscovery = selectedButton?.getAttribute('data-has-discovery') === 'true';
+    
+    if (hasDiscovery) {
         infoBox.style.display = 'block';
         // Reset content to initial state when source type changes
         infoContent.innerHTML = '<div class="text-muted">Click "Discover" to find available devices</div>';
     } else {
         infoBox.style.display = 'none';
     }
+}
+
+// Handle file upload for video files
+async function handleFileUpload(fileInput) {
+    const statusDiv = document.getElementById(fileInput.id + '_status');
+    const uploadBtn = document.getElementById(fileInput.id + '_btn');
+    const targetFieldName = fileInput.getAttribute('data-target-field');
+    const uploadEndpoint = fileInput.getAttribute('data-upload-endpoint');
+    
+    console.log('File input changed:', {
+        fileInputId: fileInput.id,
+        targetFieldName: targetFieldName,
+        uploadEndpoint: uploadEndpoint,
+        filesCount: fileInput.files?.length
+    });
+    
+    if (!fileInput.files || fileInput.files.length === 0) {
+        uploadBtn.disabled = true;
+        statusDiv.innerHTML = '';
+        return;
+    }
+    
+    // Enable upload button when file is selected
+    uploadBtn.disabled = false;
+    uploadBtn.onclick = async function() {
+        const file = fileInput.files[0];
+        
+        // Show uploading status
+        statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Uploading...';
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading';
+        
+        try {
+            // Create form data for upload
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            console.log('Uploading file to:', uploadEndpoint);
+            
+            // Upload the file
+            const response = await fetch(uploadEndpoint, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Upload successful:', result);
+                
+                // Update status
+                statusDiv.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i>Uploaded successfully';
+                uploadBtn.innerHTML = '<i class="fas fa-check"></i> Uploaded';
+                
+                // Auto-populate the target field (video file path)
+                const targetField = document.getElementById(targetFieldName);
+                console.log('Looking for target field:', targetFieldName, 'Found:', targetField);
+                
+                if (targetField && result.path) {
+                    targetField.value = result.path;
+                    targetField.readOnly = true;
+                    targetField.classList.add('is-valid');
+                    console.log('Set target field value to:', result.path);
+                } else {
+                    console.warn('Target field not found or no path in result:', {
+                        targetFieldName: targetFieldName,
+                        targetFieldExists: !!targetField,
+                        resultPath: result.path
+                    });
+                }
+                
+                // Clear the file input so user can select the same file again if needed
+                fileInput.value = '';
+                uploadBtn.disabled = true;
+                
+                // Show success notification
+                showAlert('success', `Video uploaded successfully: ${result.filename}`);
+            } else {
+                const error = await response.json();
+                console.error('Upload failed:', error);
+                statusDiv.innerHTML = `<i class="fas fa-exclamation-circle text-danger me-1"></i>Upload failed: ${error.error || 'Unknown error'}`;
+                uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Retry';
+                uploadBtn.disabled = false;
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            statusDiv.innerHTML = `<i class="fas fa-exclamation-circle text-danger me-1"></i>Upload error: ${error.message}`;
+            uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Retry';
+            uploadBtn.disabled = false;
+        }
+    };
+    
+    statusDiv.innerHTML = `<i class="fas fa-file-video me-1"></i>Selected: ${fileInput.files[0].name}`;
 }
 
 // Initialize page
@@ -4175,56 +4327,20 @@ function displayAllDevicesInfo(sourceType, devicesArray) {
         return;
     }
     
-    // Define which properties to show for each source type
-    const displayMappings = {
-        'webcam': [
-            { key: 'name', label: 'Name' },
-            { key: 'index', label: 'Index' },
-            // { key: 'id', label: 'ID' },
-            { key: 'width', label: 'Width' },
-            { key: 'height', label: 'Height' },
-            { key: 'fps', label: 'FPS' },
-            { key: 'backend_name', label: 'Backend' }
-        ],
-        'audio_spectrogram': [
-            { key: 'name', label: 'Name' },
-            { key: 'device_id', label: 'Device ID' },
-            { key: 'id', label: 'ID' },
-            { key: 'index', label: 'Index' },
-            { key: 'sample_rate', label: 'Sample Rate' },
-            { key: 'channels', label: 'Channels' },
-            { key: 'max_input_channels', label: 'Max Channels' }
-        ],
-        'basler': [
-            { key: 'name', label: 'Name' },
-            { key: 'model_name', label: 'Model' },
-            { key: 'serial_number', label: 'Serial' },
-            { key: 'device_id', label: 'Device ID' },
-            { key: 'vendor', label: 'Vendor' }
-        ],
-        'ximea': [
-            { key: 'name', label: 'Name' },
-            { key: 'model_name', label: 'Model' },
-            { key: 'serial_number', label: 'Serial' },
-            { key: 'device_id', label: 'Device ID' },
-            { key: 'vendor', label: 'Vendor' }
-        ],
-        'realsense': [
-            { key: 'name', label: 'Name' },
-            { key: 'serial_number', label: 'Serial' },
-            { key: 'product_id', label: 'Product ID' },
-            { key: 'firmware_version', label: 'Firmware' }
-        ]
-    };
+    // Get display fields from frame source metadata (if available), otherwise use defaults
+    const frameSourceMeta = availableFrameSourceTypes.find(ft => ft.type === sourceType);
+    let fieldsToShow = frameSourceMeta?.display_fields;
     
-    // Get the display mapping for this source type, or use a generic one
-    const fieldsToShow = displayMappings[sourceType] || [
-        { key: 'name', label: 'Name' },
-        { key: 'id', label: 'ID' },
-        { key: 'device_id', label: 'Device ID' },
-        { key: 'index', label: 'Index' },
-        { key: 'serial_number', label: 'Serial' }
-    ];
+    // Fallback to generic fields if not specified in metadata
+    if (!fieldsToShow || fieldsToShow.length === 0) {
+        fieldsToShow = [
+            { key: 'name', label: 'Name' },
+            { key: 'id', label: 'ID' },
+            { key: 'device_id', label: 'Device ID' },
+            { key: 'index', label: 'Index' },
+            { key: 'serial_number', label: 'Serial' }
+        ];
+    }
     
     // Build HTML for all devices
     let html = '';

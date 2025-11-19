@@ -196,6 +196,11 @@ body {
     font-size: 0.8rem;
     line-height: 1.2;
     color: #adb5bd;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+    display: block;
 }
 
 .button-selector-item:hover:not(.disabled) .label {
