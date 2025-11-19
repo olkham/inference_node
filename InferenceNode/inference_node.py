@@ -716,6 +716,50 @@ class InferenceNode:
                 self.logger.error(f"Model upload error: {str(e)}")
                 return jsonify({'error': str(e)}), 500
         
+        @self.app.route('/api/media/upload-video', methods=['POST'])
+        def upload_video():
+            """Upload a video file to the media directory"""
+            try:
+                if 'file' not in request.files:
+                    return jsonify({'error': 'No file provided'}), 400
+                
+                file = request.files['file']
+                
+                if file.filename == '' or file.filename is None:
+                    return jsonify({'error': 'No file selected'}), 400
+                
+                # Validate file extension
+                allowed_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v', '.mpg', '.mpeg'}
+                file_ext = os.path.splitext(file.filename)[1].lower()
+                
+                if file_ext not in allowed_extensions:
+                    return jsonify({'error': f'Invalid file type. Allowed types: {", ".join(allowed_extensions)}'}), 400
+                
+                # Create media directory if it doesn't exist
+                media_dir = os.path.join(os.path.dirname(__file__), 'media')
+                os.makedirs(media_dir, exist_ok=True)
+                
+                # Generate unique filename to avoid conflicts
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                safe_filename = f"{timestamp}_{file.filename}"
+                file_path = os.path.join(media_dir, safe_filename)
+                
+                # Save the uploaded file
+                file.save(file_path)
+                
+                self.logger.info(f"Video file uploaded successfully: {safe_filename}")
+                
+                return jsonify({
+                    'status': 'uploaded',
+                    'filename': safe_filename,
+                    'path': file_path,
+                    'message': f'Video {file.filename} uploaded successfully'
+                })
+                
+            except Exception as e:
+                self.logger.error(f"Video upload error: {str(e)}")
+                return jsonify({'error': str(e)}), 500
+        
         @self.app.route('/api/models/download-ultralytics', methods=['POST'])
         def download_ultralytics_model():
             """Download a model from Ultralytics and add it to the repository"""
@@ -1648,6 +1692,33 @@ class InferenceNode:
                 from frame_source import get_available_sources
                 frame_sources = get_available_sources()
                 
+                # Enhance video_file source with upload capability
+                for source in frame_sources:
+                    if source.get('type') == 'video_file' and 'config_schema' in source:
+                        schema = source['config_schema']
+                        # Check if it has a fields array
+                        if 'fields' in schema and isinstance(schema['fields'], list):
+                            # Check if upload_file field doesn't already exist
+                            has_upload_field = any(f.get('name') == 'upload_file' for f in schema['fields'])
+                            if not has_upload_field:
+                                # Insert upload_file field at the beginning
+                                upload_field = {
+                                    'name': 'upload_file',
+                                    'type': 'file',
+                                    'label': 'Upload Video File',
+                                    'description': 'Upload a video file (MP4, AVI, MOV, etc.)',
+                                    'accept': '.mp4,.avi,.mov,.mkv,.wmv,.flv,.webm,.m4v,.mpg,.mpeg',
+                                    'upload_endpoint': '/api/media/upload-video',
+                                    'required': False
+                                }
+                                schema['fields'].insert(0, upload_field)
+                                
+                                # Update the source field description to mention upload
+                                for field in schema['fields']:
+                                    if field.get('name') == 'source':
+                                        field['description'] = 'Path to the video file (auto-populated after upload, or enter manually)'
+                                        field['placeholder'] = 'Enter file path or upload a video above'
+                
                 return jsonify({
                     'status': 'success',
                     'frame_sources': frame_sources
@@ -1665,38 +1736,45 @@ class InferenceNode:
                         'primary': True,
                         'available': True,
                         'config_schema': {
-                            'type': 'object',
-                            'properties': {
-                                'source': {
-                                    'type': 'integer',
-                                    'title': 'Camera Index',
+                            'fields': [
+                                {
+                                    'name': 'source',
+                                    'type': 'number',
+                                    'label': 'Camera Index',
                                     'description': 'Camera device index (0 for default camera)',
                                     'default': 0,
-                                    'minimum': 0
+                                    'min': 0,
+                                    'required': True
                                 },
-                                'width': {
-                                    'type': 'integer',
-                                    'title': 'Width',
+                                {
+                                    'name': 'width',
+                                    'type': 'number',
+                                    'label': 'Width',
                                     'description': 'Frame width in pixels',
                                     'default': 640,
-                                    'minimum': 320
+                                    'min': 320,
+                                    'required': False
                                 },
-                                'height': {
-                                    'type': 'integer',
-                                    'title': 'Height',
+                                {
+                                    'name': 'height',
+                                    'type': 'number',
+                                    'label': 'Height',
                                     'description': 'Frame height in pixels',
                                     'default': 480,
-                                    'minimum': 240
+                                    'min': 240,
+                                    'required': False
                                 },
-                                'fps': {
+                                {
+                                    'name': 'fps',
                                     'type': 'number',
-                                    'title': 'FPS',
+                                    'label': 'FPS',
                                     'description': 'Frames per second',
                                     'default': 30,
-                                    'minimum': 1,
-                                    'maximum': 60
+                                    'min': 1,
+                                    'max': 60,
+                                    'required': False
                                 }
-                            }
+                            ]
                         }
                     },
                     {
@@ -1707,21 +1785,34 @@ class InferenceNode:
                         'primary': True,
                         'available': True,
                         'config_schema': {
-                            'type': 'object',
-                            'properties': {
-                                'source': {
-                                    'type': 'string',
-                                    'title': 'Video File Path',
-                                    'description': 'Path to the video file',
-                                    'default': ''
+                            'fields': [
+                                {
+                                    'name': 'upload_file',
+                                    'type': 'file',
+                                    'label': 'Upload Video File',
+                                    'description': 'Upload a video file (MP4, AVI, MOV, etc.)',
+                                    'accept': '.mp4,.avi,.mov,.mkv,.wmv,.flv,.webm,.m4v,.mpg,.mpeg',
+                                    'upload_endpoint': '/api/media/upload-video',
+                                    'required': False
                                 },
-                                'loop': {
-                                    'type': 'boolean',
-                                    'title': 'Loop Video',
+                                {
+                                    'name': 'source',
+                                    'type': 'text',
+                                    'label': 'Video File Path',
+                                    'description': 'Path to the video file (auto-populated after upload, or enter manually)',
+                                    'placeholder': 'Enter file path or upload a video above',
+                                    'required': True,
+                                    'readonly_when_uploaded': True
+                                },
+                                {
+                                    'name': 'loop',
+                                    'type': 'checkbox',
+                                    'label': 'Loop Video',
                                     'description': 'Loop the video when it ends',
-                                    'default': True
+                                    'default': True,
+                                    'required': False
                                 }
-                            }
+                            ]
                         }
                     },
                     {
@@ -1732,28 +1823,32 @@ class InferenceNode:
                         'primary': False,
                         'available': True,
                         'config_schema': {
-                            'type': 'object',
-                            'properties': {
-                                'source': {
-                                    'type': 'string',
-                                    'title': 'Camera URL',
+                            'fields': [
+                                {
+                                    'name': 'source',
+                                    'type': 'url',
+                                    'label': 'Camera URL',
                                     'description': 'RTSP or HTTP URL to the camera stream',
-                                    'default': 'rtsp://192.168.1.100:554/stream'
+                                    'placeholder': 'rtsp://192.168.1.100:554/stream',
+                                    'required': True
                                 },
-                                'username': {
-                                    'type': 'string',
-                                    'title': 'Username',
+                                {
+                                    'name': 'username',
+                                    'type': 'text',
+                                    'label': 'Username',
                                     'description': 'Camera authentication username (optional)',
-                                    'default': ''
+                                    'placeholder': '',
+                                    'required': False
                                 },
-                                'password': {
-                                    'type': 'string',
-                                    'title': 'Password',
+                                {
+                                    'name': 'password',
+                                    'type': 'password',
+                                    'label': 'Password',
                                     'description': 'Camera authentication password (optional)',
-                                    'default': '',
-                                    'format': 'password'
+                                    'placeholder': '',
+                                    'required': False
                                 }
-                            }
+                            ]
                         }
                     }
                 ]
