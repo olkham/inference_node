@@ -21,6 +21,11 @@ torchvision>=0.12.0
 # geti-sdk>=2.11.0  # DISABLED: Requires Python 3.10-3.13, install separately if needed
 # To install geti-sdk: pip install "geti-sdk>=2.11.0" (only on Python 3.10-3.13)
 
+# ONNX Runtime (choose one based on hardware)
+onnxruntime>=1.16.0  # CPU version
+# onnxruntime-openvino>=1.16.0  # Intel OpenVINO acceleration
+# onnxruntime-gpu[cuda12,cudnn]>=1.16.0  # NVIDIA GPU acceleration (CUDA 12)
+
 # GPU monitoring (optional) - uses newer nvidia-ml-py instead of deprecated pynvml
 nvidia-ml-py>=12.0.0
 
