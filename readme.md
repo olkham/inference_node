@@ -19,6 +19,7 @@ https://github.com/user-attachments/assets/5ed323d7-e8cf-421a-be8f-781e3f51c9a0
 ### Supported Inference Engines
 - **Ultralytics**: YOLO object detection models (YOLOv8, YOLOv11, etc.)
 - **Geti**: Intel's computer vision platform
+- **ONNX Runtime**: Cross-platform ML model inference with CPU, OpenVINO, and GPU acceleration
 - **Pass-through**: For testing and development
 - **Custom**: Extensible framework for custom implementations
 
@@ -67,6 +68,16 @@ pip install -r requirements.txt
 # Optional: Install AI/ML frameworks (if not already in requirements.txt)
 pip install torch torchvision ultralytics geti-sdk
 
+# Optional: Install ONNX Runtime (choose based on your hardware)
+pip install onnxruntime>=1.16.0                    # CPU version
+pip install onnxruntime-openvino>=1.16.0           # Intel OpenVINO acceleration
+pip install "onnxruntime-gpu[cuda12,cudnn]>=1.16.0" # NVIDIA GPU acceleration
+
+# Or use optional dependency groups from pyproject.toml
+pip install -e .[onnx]              # CPU version
+pip install -e .[onnx-openvino]     # Intel OpenVINO
+pip install -e .[onnx-gpu]          # NVIDIA GPU
+
 # Optional: Install GPU monitoring (uses nvidia-ml-py, not deprecated pynvml)
 pip install nvidia-ml-py>=12.0.0
 
@@ -103,15 +114,21 @@ from InferenceEngine import InferenceEngine
 
 # Create different engine types
 ie_ultralytics = InferenceEngine('ultralytics')
-ie_torch = InferenceEngine('torch')
+ie_onnx = InferenceEngine('onnx')
+ie_geti = InferenceEngine('geti')
 ie_custom = InferenceEngine('custom')
 
-# Upload and load a model
+# Upload and load a model (Ultralytics example)
 model_id = ie_ultralytics.upload('path/to/model.pt')
 ie_ultralytics.load(model_id, device='cuda')
 
+# Upload and load an ONNX model
+onnx_model_id = ie_onnx.upload('path/to/model.onnx')
+ie_onnx.load(onnx_model_id, device='cpu')
+
 # Run inference
 result = ie_ultralytics.infer('path/to/image.jpg')
+onnx_result = ie_onnx.infer('path/to/image.jpg')
 ```
 
 ### 3. Configure Result Publishing
@@ -208,6 +225,7 @@ inference_node/
 │   │   ├── base_engine.py        # Base class for all engines
 │   │   ├── ultralytics_engine.py # Ultralytics YOLO support
 │   │   ├── geti_engine.py        # Geti support
+│   │   ├── onnx_engine.py         # ONNX Runtime support
 │   │   ├── pass_engine.py        # Pass-through engine
 │   │   └── example_engine_template.py # Custom engine template
 │   ├── inference_engine_factory.py

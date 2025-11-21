@@ -16,17 +16,15 @@
                 <form id="uploadForm" enctype="multipart/form-data">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label for="modelType" class="form-label">Model Type</label>
-                            <select class="form-select" id="modelType" required>
-                                <option value="">Select Model Type</option>
-                                <option value="ultralytics">Ultralytics YOLO</option>
-                                <option value="geti">Geti</option>
+                            <label for="inferenceEngine" class="form-label">Inference Engine</label>
+                            <select class="form-select" id="inferenceEngine" required>
+                                <option value="">Loading engines...</option>
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label for="modelFile" class="form-label">Model File</label>
-                            <input type="file" class="form-control" id="modelFile" required>
-                            <div class="form-text">Supported formats: .pt (Ultralytics), .zip (Geti deployment package)</div>
+                            <input type="file" class="form-control" id="modelFile" accept=".pt,.pth,.zip,.onnx" required>
+                            <div class="form-text" id="supportedFormatsText">Supported formats: .pt (Ultralytics), .zip (Geti), .onnx (ONNX Runtime)</div>
                         </div>
                         
                         <div class="col-12">
@@ -255,11 +253,31 @@
                                     <ol class="mb-0 ps-3">
                                         <li>Export your trained model from Geti platform</li>
                                         <li>Download the deployment package (.zip file)</li>
-                                        <li>Select "Geti" as model type</li>
+                                        <li>Select "Geti" as inference engine</li>
                                         <li>Upload the .zip file (do not extract it)</li>
                                     </ol>
                                     <br>
                                     <strong>Note:</strong> The deployment package should contain the OpenVINO model files and configuration.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#onnx-info">
+                                ONNX Runtime
+                            </button>
+                        </h2>
+                        <div id="onnx-info" class="accordion-collapse collapse" data-bs-parent="#modelInfo">
+                            <div class="accordion-body">
+                                <small>
+                                    ONNX (Open Neural Network Exchange) is an open format for representing machine learning models.
+                                    ONNX Runtime provides cross-platform, high-performance inference.
+                                    <br><br>
+                                    <strong>Supported formats:</strong> .onnx
+                                    <br><strong>How to upload:</strong> Select "ONNX Runtime" as inference engine and upload an .onnx model file.
+                                    <br><br>
+                                    <strong>Compatible with:</strong> PyTorch, TensorFlow, scikit-learn, and other ML frameworks that can export to ONNX format.
                                 </small>
                             </div>
                         </div>
@@ -337,20 +355,94 @@
 {% block scripts %}
 <script>
 let currentView = 'list'; // 'list' or 'grid'
+let availableEngineTypes = []; // Store available engine types
 
-// Handle model type selection
-document.getElementById('modelType').addEventListener('change', function() {
+// Load available inference engines
+async function loadAvailableEngineTypes() {
+    try {
+        const response = await fetch('/api/inference/engines');
+        const data = await response.json();
+        
+        if (response.ok && data.engine_types) {
+            availableEngineTypes = data.engine_types;
+            updateInferenceEngineDropdown(data.engine_types);
+        } else {
+            console.error('Failed to load inference engines:', data.error);
+            showEngineLoadError();
+        }
+    } catch (error) {
+        console.error('Error loading inference engines:', error);
+        showEngineLoadError();
+    }
+}
+
+// Update the inference engine dropdown with available engines
+function updateInferenceEngineDropdown(engines) {
+    const dropdown = document.getElementById('inferenceEngine');
+    
+    if (engines.length === 0) {
+        dropdown.innerHTML = '<option value="">No engines available</option>';
+        dropdown.disabled = true;
+        return;
+    }
+    
+    // Build dropdown options
+    let optionsHtml = '<option value="">Select Inference Engine</option>';
+    
+    engines.forEach(engine => {
+        const displayName = engine.display_name || engine.name || engine.type;
+        const engineValue = engine.type || engine.name;
+        optionsHtml += `<option value="${engineValue}">${displayName}</option>`;
+    });
+    
+    dropdown.innerHTML = optionsHtml;
+    dropdown.disabled = false;
+}
+
+// Show error when engines fail to load
+function showEngineLoadError() {
+    const dropdown = document.getElementById('inferenceEngine');
+    dropdown.innerHTML = '<option value="">Error loading engines</option>';
+    dropdown.disabled = true;
+    showAlert('error', 'Failed to load inference engines. Please refresh the page.');
+}
+
+// Handle inference engine selection
+document.getElementById('inferenceEngine').addEventListener('change', function() {
     const ultralyticsSection = document.getElementById('ultralyticsSection');
     const modelFileInput = document.getElementById('modelFile');
+    const supportedFormatsText = document.getElementById('supportedFormatsText');
     const uploadBtnText = document.getElementById('uploadBtnText');
     
+    // Update supported formats text based on selected engine
     if (this.value === 'ultralytics') {
         ultralyticsSection.style.display = 'block';
         modelFileInput.required = false;
+        supportedFormatsText.textContent = 'Supported formats: .pt, .pth (PyTorch models)';
+        modelFileInput.accept = '.pt,.pth';
+    } else if (this.value === 'geti') {
+        ultralyticsSection.style.display = 'none';
+        modelFileInput.required = true;
+        supportedFormatsText.textContent = 'Supported formats: .zip (Geti deployment package)';
+        modelFileInput.accept = '.zip';
+        document.getElementById('ultralyticsModel').value = '';
+    } else if (this.value === 'onnx') {
+        ultralyticsSection.style.display = 'none';
+        modelFileInput.required = true;
+        supportedFormatsText.textContent = 'Supported formats: .onnx (ONNX model files)';
+        modelFileInput.accept = '.onnx';
+        document.getElementById('ultralyticsModel').value = '';
+    } else if (this.value === 'pass') {
+        ultralyticsSection.style.display = 'none';
+        modelFileInput.required = false;
+        supportedFormatsText.textContent = 'No model file required for passthrough engine';
+        modelFileInput.accept = '';
+        document.getElementById('ultralyticsModel').value = '';
     } else {
         ultralyticsSection.style.display = 'none';
         modelFileInput.required = true;
-        // Clear ultralytics selection
+        supportedFormatsText.textContent = 'Supported formats: .pt (Ultralytics), .zip (Geti), .onnx (ONNX Runtime)';
+        modelFileInput.accept = '.pt,.pth,.zip,.onnx';
         document.getElementById('ultralyticsModel').value = '';
     }
 });
@@ -362,7 +454,7 @@ document.getElementById('modelType').addEventListener('change', function() {
 document.getElementById('uploadForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    const modelType = document.getElementById('modelType').value;
+    const inferenceEngine = document.getElementById('inferenceEngine').value;
     const modelFile = document.getElementById('modelFile').files[0];
     const ultralyticsModel = document.getElementById('ultralyticsModel').value;
     
@@ -373,7 +465,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
     }
     
     // If ultralytics model is selected but no file, use download function instead
-    if (modelType === 'ultralytics' && ultralyticsModel && !modelFile) {
+    if (inferenceEngine === 'ultralytics' && ultralyticsModel && !modelFile) {
         downloadUltralyticsModel();
         return;
     }
@@ -381,35 +473,86 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
     // Regular file upload
     const formData = new FormData();
     formData.append('file', modelFile);
-    formData.append('engine_type', modelType);
+    formData.append('engine_type', inferenceEngine);
     formData.append('description', document.getElementById('description').value);
     formData.append('name', document.getElementById('modelName').value);
     
     const progressBar = document.querySelector('#uploadProgress .progress-bar');
     const progressDiv = document.getElementById('uploadProgress');
+    const uploadSubmitBtn = document.getElementById('uploadSubmitBtn');
+    
+    // Disable submit button during upload
+    uploadSubmitBtn.disabled = true;
+    uploadSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
     
     progressDiv.style.display = 'block';
     progressBar.style.width = '0%';
+    progressBar.textContent = '0%';
     
     try {
-        const response = await fetch('/api/models/upload', {
-            method: 'POST',
-            body: formData
+        // Use XMLHttpRequest for progress tracking
+        const xhr = new XMLHttpRequest();
+        
+        // Track upload progress
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                progressBar.style.width = percentComplete + '%';
+                progressBar.textContent = Math.round(percentComplete) + '%';
+            }
         });
         
-        const result = await response.json();
+        // Handle completion
+        const uploadPromise = new Promise((resolve, reject) => {
+            xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const result = JSON.parse(xhr.responseText);
+                        resolve(result);
+                    } catch (e) {
+                        reject(new Error('Invalid response format'));
+                    }
+                } else {
+                    try {
+                        const result = JSON.parse(xhr.responseText);
+                        reject(new Error(result.error || 'Upload failed'));
+                    } catch (e) {
+                        reject(new Error(`Upload failed with status ${xhr.status}`));
+                    }
+                }
+            });
+            
+            xhr.addEventListener('error', () => {
+                reject(new Error('Network error during upload'));
+            });
+            
+            xhr.addEventListener('abort', () => {
+                reject(new Error('Upload cancelled'));
+            });
+        });
         
-        if (response.ok) {
-            showAlert('success', `Model uploaded successfully! Model ID: ${result.model_id}`);
-            refreshModels();
-            document.getElementById('uploadForm').reset();
-        } else {
-            showAlert('error', `Upload failed: ${result.error}`);
-        }
+        // Send the request
+        xhr.open('POST', '/api/models/upload');
+        xhr.send(formData);
+        
+        const result = await uploadPromise;
+        
+        showAlert('success', `Model uploaded successfully! Model ID: ${result.model_id}`);
+        refreshModels();
+        document.getElementById('uploadForm').reset();
+        
+        // Reset the supported formats text after form reset
+        const supportedFormatsText = document.getElementById('supportedFormatsText');
+        supportedFormatsText.textContent = 'Supported formats: .pt (Ultralytics), .zip (Geti), .onnx (ONNX Runtime)';
+        
     } catch (error) {
         showAlert('error', `Upload failed: ${error.message}`);
     } finally {
         progressDiv.style.display = 'none';
+        progressBar.style.width = '0%';
+        progressBar.textContent = '';
+        uploadSubmitBtn.disabled = false;
+        uploadSubmitBtn.innerHTML = '<i class="fas fa-upload me-2"></i><span id="uploadBtnText">Upload Model</span>';
     }
 });
 
@@ -712,7 +855,10 @@ async function deleteModel(modelId) {
 }
 
 // Initialize page
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // Load available engines first
+    await loadAvailableEngineTypes();
+    // Then load models
     refreshModels();
 });
 </script>
