@@ -1,3 +1,9 @@
+# ⚠️ Project Superseded
+
+**This project has been superseded by [pynode](https://github.com/olkham/pynode). Please visit the new repository for the latest updates and improvements.**
+
+---
+
 # InferNode
 ## A scalable inference platform that provides multi-node management and control for AI/ML inference workloads.
 
